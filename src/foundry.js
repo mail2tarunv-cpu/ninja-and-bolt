@@ -134,7 +134,8 @@ export class Foundry extends Phaser.Scene {
     this.exit=this.add.image(2290,GROUND-78,'foundry-door').setDepth(8);
     this.liftHeightText=this.add.text(1234,302,'LIFT: LOW',{fontSize:'14px',color:'#a6d1d8',fontFamily:'Arial'}).setDepth(13);
     this.weightText=this.add.text(1618,555,'LOAD: 0',{fontSize:'13px',fontFamily:'Arial',color:'#f5d29b'}).setDepth(13);
-    this.loadedIcons=[];
+    this.basketLight=this.add.image(1650,350,'foundry-light').setScale(.6).setDepth(10).setVisible(false);
+    this.basketHeavy=this.add.image(1685,350,'foundry-heavy').setScale(.6).setDepth(10).setVisible(false);
     this.machineReady=false;
   }
   makeHeroes(){
@@ -331,9 +332,8 @@ export class Foundry extends Phaser.Scene {
     this.basketEdge.clear();
     this.basketEdge.lineStyle(3,0xc8a878).beginPath()
       .moveTo(1623,basketY-2).lineTo(1623,basketY+17).lineTo(1717,basketY+17).lineTo(1717,basketY-2).strokePath();
-    this.loadedIcons.forEach(o=>o.destroy());this.loadedIcons=[];
-    if(s.loaded.light)this.loadedIcons.push(this.add.image(1650,basketY-22,'foundry-light').setScale(.6).setDepth(10));
-    if(s.loaded.heavy)this.loadedIcons.push(this.add.image(1685,basketY-24,'foundry-heavy').setScale(.6).setDepth(10));
+    this.basketLight.setPosition(1650,basketY-22).setVisible(s.loaded.light);
+    this.basketHeavy.setPosition(1685,basketY-24).setVisible(s.loaded.heavy);
     this.ropes.clear();
     if(s.wheelInstalled){
       this.wheelArt.setRotation(this.wheelArt.rotation+(Math.abs(this.lift.body.velocity.y)>.5?.007:0));
