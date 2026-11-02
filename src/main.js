@@ -1,100 +1,338 @@
-
 import Phaser from 'phaser';
 import './style.css';
-const W=3300, FLOOR=620;
+
+// Gameplay-only greybox. Every measurement uses game-world pixels.
+// No final art is embedded in the puzzle logic.
+const WORLD = { width: 1780, height: 720, ground: 605, gapStart: 1090, gapEnd: 1320 };
+const C = { sky: 0x172431, stone: 0x526273, edge: 0xa5b5bd, ink: 0xe8edf2,
+  ninja: 0xcc7080, bolt: 0xb5a184, gold: 0xeec783, cyan: 0x78cdd7, green: 0x8dd6ad };
+const distance = (a,b) => Phaser.Math.Distance.Between(a.x,a.y,b.x,b.y);
+const near = (a,b,r=100) => distance(a,b)<r;
+const groundCenter = (height) => WORLD.ground-height/2;
+
 class Workshop extends Phaser.Scene {
- constructor(){super('Workshop')}
- preload(){}
- create(){
-  this.physics.world.setBounds(0,0,W,720);this.cameras.main.setBounds(0,0,W,720);
-  this.cameras.main.setBackgroundColor('#1a2c3f');this.textureFactory();this.scenery();
-  this.floor=this.physics.add.staticGroup();
-  this.platform(0,620,550,100);this.platform(600,620,1080,100);this.platform(2180,620,1120,100);
-  this.platform(220,547,115,22);this.platform(330,480,115,22);this.platform(442,402,210,22);
-  this.platform(890,535,120,22);this.platform(1100,480,125,22);this.platform(2540,528,150,20);
-  // Gate is a separate blocking body and can be removed after activating the lever.
-  this.gate=this.physics.add.staticImage(700,553,'gate').setDepth(7);
-  this.lever=this.add.image(544,367,'lever').setDepth(7);
-  this.add.text(487,321,'NINJA SWITCH',{fontSize:'13px',color:'#f1c88d'});
-  this.plate=this.add.rectangle(1450,611,110,14,0xffc475).setDepth(5);
-  this.add.text(1393,568,'WEIGHT PLATE',{fontSize:'13px',color:'#f1c88d'});
-  this.crate=this.physics.add.image(1045,574,'crate').setDepth(7).setCollideWorldBounds(true);
-  this.crate.setSize(55,55).setDragX(700);
-  this.beam=this.physics.add.image(1590,574,'beam').setDepth(7).setSize(96,26);
-  this.beam.disableBody(true,true);
-  this.socket=this.add.rectangle(1930,615,500,20,0xf8d38e,0.13).setStrokeStyle(2,0xf6ce7d,0.8);
-  this.add.text(1720,564,'BRIDGE CONSTRUCTION SITE',{fontSize:'14px',color:'#f1c88d'});
-  this.bridge=this.add.rectangle(1930,616,500,22,0xc7a275).setVisible(false).setDepth(4);
-  this.exit=this.add.image(3075,532,'exit').setDepth(4);
-  this.ninja=this.physics.add.image(100,576,'ninja').setDepth(9).setCollideWorldBounds(true).setSize(28,60);
-  this.bolt=this.physics.add.image(170,573,'bolt').setDepth(9).setCollideWorldBounds(true).setSize(53,75);
-  for(const obj of [this.ninja,this.bolt,this.crate,this.beam])this.physics.add.collider(obj,this.floor);
-  this.physics.add.collider(this.ninja,this.crate);this.physics.add.collider(this.bolt,this.crate);
-  this.physics.add.collider(this.ninja,this.beam);this.physics.add.collider(this.bolt,this.beam);
-  this.physics.add.collider(this.ninja,this.gate);this.physics.add.collider(this.bolt,this.gate);
-  this.keys=this.input.keyboard.addKeys('A,D,W,F,LEFT,RIGHT,UP,ENTER,R');
-  this.input.keyboard.on('keydown-R',()=>this.scene.restart());
-  document.querySelector('#restart').onclick=()=>this.scene.restart();
-  this.open=false;this.activePlate=false;this.built=false;this.held=null;this.finished=false;
-  this.help=this.add.text(0,0,'',{fontSize:'14px',color:'#ffe0a0',backgroundColor:'#263748',padding:{x:9,y:6}}).setDepth(20);
-  this.help.setVisible(false);this.setGoal('Ninja: reach the high lever and open the gate.',1);
-  this.add.text(44,268,'THE FORGOTTEN WORKSHOP',{fontFamily:'sans-serif',fontSize:'27px',fontStyle:'bold',color:'#f4d9a1'});
-  this.add.text(44,302,'Two heroes. One way through.',{fontSize:'16px',color:'#c5d8e9'});
-  this.add.text(85,497,'A D W',{fontSize:'16px',color:'#a6dbef'});this.add.text(159,497,'← → ↑',{fontSize:'16px',color:'#ecc9a9'});
- }
- textureFactory(){
-  const g=this.make.graphics({x:0,y:0});
-  const make=(name,w,h,fn)=>{g.clear();fn(g);g.generateTexture(name,w,h)};
-  make('ninja',48,68,g=>{g.fillStyle(0x212a36);g.fillRoundedRect(12,30,25,34,6);g.fillStyle(0xf7e7d6);g.fillEllipse(25,20,35,35);g.fillTriangle(9,12,7,0,23,12);g.fillTriangle(28,12,42,0,42,18);g.fillStyle(0x1b2533);g.fillEllipse(17,20,7,10);g.fillEllipse(31,20,7,10);g.fillStyle(0xca686b);g.fillRoundedRect(4,35,39,8,3);g.fillTriangle(10,37,0,49,23,39)});
-  make('bolt',70,81,g=>{g.fillStyle(0x62565a);g.fillRoundedRect(8,27,55,48,11);g.fillStyle(0xcebaa0);g.fillRoundedRect(12,12,48,56,12);g.fillStyle(0x202938);g.fillRoundedRect(17,18,40,27,12);g.fillStyle(0xffd68b);g.fillCircle(31,31,5);g.fillCircle(46,31,5);g.fillStyle(0xa4988d);g.fillRoundedRect(0,37,17,26,7);g.fillRoundedRect(55,37,15,26,7);g.fillStyle(0x4a4851);g.fillRoundedRect(15,67,20,13,4);g.fillRoundedRect(39,67,20,13,4);g.fillStyle(0x9ab38a);g.fillEllipse(38,7,16,9)});
-  make('crate',60,60,g=>{g.fillStyle(0x9d9da6);g.fillRoundedRect(2,2,56,56,4);g.lineStyle(3,0x4e5967);g.strokeRect(8,8,44,44);g.lineBetween(10,10,50,50);g.lineBetween(50,10,10,50)});
-  make('beam',104,30,g=>{g.fillStyle(0xc09b66);g.fillRoundedRect(1,1,102,28,4);g.lineStyle(3,0x6b5849);g.strokeRoundedRect(5,5,94,20,4);g.lineBetween(12,25,94,5)});
-  make('lever',42,50,g=>{g.fillStyle(0x9da3a9);g.fillRoundedRect(4,34,34,12,3);g.lineStyle(5,0xf5bd77);g.lineBetween(19,34,30,9);g.fillStyle(0xf8d68a);g.fillCircle(30,9,8)});
-  make('gate',40,134,g=>{g.fillStyle(0xa45d67);g.fillRoundedRect(0,0,40,134,4);g.lineStyle(3,0xe89798);for(let x=8;x<40;x+=11)g.lineBetween(x,5,x,128)});
-  make('exit',112,172,g=>{g.fillStyle(0x666d7c);g.fillRoundedRect(0,0,112,172,40);g.fillStyle(0x2a3144);g.fillRoundedRect(9,10,94,153,34);g.lineStyle(4,0xf2c67d);g.strokeRoundedRect(9,10,94,153,34);g.fillStyle(0xe9bd77,0.7);g.fillEllipse(56,87,50,95)});
-  g.destroy();
- }
- scenery(){
-  const g=this.add.graphics().setDepth(-15);
-  g.fillGradientStyle(0x152536,0x152536,0x394e67,0x394e67);g.fillRect(0,0,W,720);
-  for(let i=0;i<29;i++){let x=i*120;g.fillStyle(0x8390a4,0.11);g.fillRoundedRect(x,210+i%4*35,68,390,20);g.lineStyle(12,0x8894a8,0.1);g.strokeRoundedRect(x-15,130+i%4*35,100,220,40)}
-  const m=this.add.graphics().setDepth(-10);for(let i=0;i<35;i++){m.fillStyle(0x263748,0.6);m.fillRoundedRect(i*115,450+(i%3)*30,65,235,8)}
-  for(let i=0;i<23;i++)this.add.circle(i*140+50,200+(i%5)*37,2,0xffdfad,0.5).setDepth(-4);
- }
- platform(x,y,w,h){const r=this.add.rectangle(x+w/2,y+h/2,w,h,0x687482).setStrokeStyle(2,0x47566a).setDepth(2);this.floor.add(r);this.add.rectangle(x+w/2,y+4,w,8,0xb0b9b5).setDepth(3)}
- setGoal(s,i){document.querySelector('#objective').textContent=s;document.querySelector('#step').textContent='0'+i+' / 04'}
- toast(s){let e=document.querySelector('#toast');e.textContent=s;e.classList.add('show');this.time.delayedCall(2300,()=>e.classList.remove('show'))}
- close(a,b,d=90){return Phaser.Math.Distance.Between(a.x,a.y,b.x,b.y)<d}
- drive(o,l,r,j,speed,power){o.setVelocityX(l?-speed:r?speed:Phaser.Math.Linear(o.body.velocity.x,0,.25));if(j&&o.body.blocked.down)o.setVelocityY(-power);if(l||r)o.setFlipX(l)}
- ninjaUse(){if(!this.open&&this.close(this.ninja,this.lever,100)){this.open=true;this.gate.disableBody(true,true);this.toast('The gate is open! Bolt can now reach the heavy crate.');this.setGoal('Bolt: put the heavy crate on the pressure plate.',2)}else this.toast('Ninja: reach the lever above the gate.')}
- boltUse(){
-  if(!this.open){this.toast('Ninja must open the gate first.');return}
-  if(this.held){let o=this.held==='crate'?this.crate:this.beam;if(this.held==='beam'&&this.bolt.x>1640&&this.bolt.x<1775){this.held=null;this.built=true;o.disableBody(true,true);this.bridge.setVisible(true);this.physics.add.existing(this.bridge,true);this.physics.add.collider(this.ninja,this.bridge);this.physics.add.collider(this.bolt,this.bridge);this.socket.setVisible(false);this.toast('Bridge built! Reach the exit together.');this.setGoal('Both heroes: cross the bridge and reach the exit.',4);return}
-   o.body.setAllowGravity(true);o.setPosition(this.bolt.x+63,this.bolt.y-45).setVelocity(0,0);this.held=null;return}
-  if(!this.activePlate&&this.close(this.bolt,this.crate,110)){this.held='crate';this.toast('Carry the crate to the pressure plate.');return}
-  if(this.activePlate&&!this.built&&this.close(this.bolt,this.beam,120)){this.held='beam';this.toast('Carry the beam to the gold bridge socket.');return}
-  this.toast('Move near an object and press Enter to lift it.');
- }
- update(){
-  if(this.finished)return;
-  this.drive(this.ninja,this.keys.A.isDown,this.keys.D.isDown,Phaser.Input.Keyboard.JustDown(this.keys.W),230,445);
-  this.drive(this.bolt,this.keys.LEFT.isDown,this.keys.RIGHT.isDown,Phaser.Input.Keyboard.JustDown(this.keys.UP),170,330);
-  if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.ninjaUse();
-  if(Phaser.Input.Keyboard.JustDown(this.keys.ENTER))this.boltUse();
-  if(this.held){let o=this.held==='crate'?this.crate:this.beam;o.body.setAllowGravity(false);o.setPosition(this.bolt.x+65,this.bolt.y-43).setVelocity(0,0)}
-  if(this.open&&!this.activePlate&&this.held!=='crate'&&Math.abs(this.crate.x-this.plate.x)<62&&this.crate.y>560&&this.crate.y<613){this.activePlate=true;this.plate.setFillStyle(0x8be6aa);this.beam.enableBody(true,1584,575,true,true);this.physics.add.collider(this.beam,this.floor);this.toast('Pressure plate activated: bridge beam unlocked!');this.setGoal('Bolt: carry the beam to the bridge socket.',3)}
-  if(this.ninja.y>715)this.ninja.setPosition(1260,550).setVelocity(0);
-  if(this.bolt.y>715)this.bolt.setPosition(1370,550).setVelocity(0);
-  if(this.crate.y>715&&this.held!=='crate')this.crate.setPosition(1035,550).setVelocity(0);
-  if(this.beam.active&&this.beam.y>715&&this.held!=='beam')this.beam.setPosition(1584,560).setVelocity(0);
-  const setHint=(o,s)=>{this.help.setText(s).setPosition(o.x-68,o.y-115).setVisible(true)};
-  if(!this.open&&this.close(this.ninja,this.lever,100))setHint(this.ninja,'NINJA · F to use lever');
-  else if(this.open&&!this.activePlate&&this.close(this.bolt,this.crate,120))setHint(this.bolt,'BOLT · Enter to carry / drop');
-  else if(this.activePlate&&!this.built&&this.held==='beam'&&this.bolt.x>1640&&this.bolt.x<1775)setHint(this.bolt,'BOLT · Enter to build bridge');
-  else if(this.activePlate&&!this.built&&this.close(this.bolt,this.beam,120))setHint(this.bolt,'BOLT · Enter to carry beam');
-  else this.help.setVisible(false);
-  const focus=(this.ninja.x+this.bolt.x)/2;const target=Phaser.Math.Clamp(focus-640,0,W-1280);this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,target,.05);
-  if(this.built&&this.ninja.x>2990&&this.bolt.x>2990){this.finished=true;this.physics.pause();this.toast('LEVEL COMPLETE · Together, you made it!');this.setGoal('Workshop complete! Restart to play again.',4)}
- }
+  constructor(){ super('Workshop'); }
+
+  create(){
+    this.physics.world.setBounds(0,0,WORLD.width,WORLD.height);
+    this.cameras.main.setBounds(0,0,WORLD.width,WORLD.height);
+    this.cameras.main.setBackgroundColor(C.sky);
+    this.createTextures();
+    this.drawEnvironment();
+    this.createTerrain();
+    this.createPuzzle();
+    this.createPlayers();
+    this.configureInputs();
+    this.createLabels();
+    this.resetState();
+    document.getElementById('restart').onclick = () => this.scene.restart();
+    document.getElementById('hint').onclick = () => this.showHint();
+  }
+
+  createTextures(){
+    const g = this.make.graphics({x:0,y:0});
+    const make = (key,w,h,paint) => {g.clear(); paint(g);g.generateTexture(key,w,h);};
+    make('ninja',54,70,g=>{
+      g.fillStyle(0x212938);g.fillRoundedRect(15,37,25,31,6);
+      g.fillStyle(0xf4e7db);g.fillEllipse(27,24,43,38);
+      g.fillTriangle(8,16,6,1,23,15);g.fillTriangle(32,15,48,1,49,23);
+      g.fillStyle(0x18202a);g.fillEllipse(18,24,7,12);g.fillEllipse(36,24,7,12);
+      g.fillStyle(C.ninja);g.fillRoundedRect(8,39,37,10,5);
+      g.fillTriangle(11,41,1,57,26,44);
+    });
+    make('bolt',76,82,g=>{
+      g.fillStyle(0x585a62);g.fillRoundedRect(10,30,55,46,8);
+      g.fillStyle(0xc8b89e);g.fillRoundedRect(14,13,49,57,15);
+      g.fillStyle(0x202b39);g.fillRoundedRect(19,22,40,25,11);
+      g.fillStyle(0xffd88f);g.fillCircle(31,34,5);g.fillCircle(46,34,5);
+      g.fillStyle(0x8d8c92);g.fillRoundedRect(0,39,16,25,7);g.fillRoundedRect(60,39,16,25,7);
+      g.fillStyle(0x414451);g.fillRoundedRect(15,69,23,12,4);g.fillRoundedRect(42,69,22,12,4);
+      g.fillStyle(0x96af7a);g.fillEllipse(40,7,17,8);
+      g.lineStyle(3,0x6e5d53);g.strokeRoundedRect(17,15,44,52,10);
+    });
+    make('crate',68,68,g=>{
+      g.fillStyle(0xad9b81);g.fillRoundedRect(2,2,64,64,6);
+      g.lineStyle(4,0x554d4b);g.strokeRect(7,7,54,54);
+      g.lineBetween(11,11,57,57);g.lineBetween(57,11,11,57);
+      g.fillStyle(0xe4c993);g.fillCircle(34,34,6);
+    });
+    make('beam',172,27,g=>{
+      g.fillStyle(0xc4a277);g.fillRoundedRect(0,1,172,24,4);
+      g.lineStyle(3,0x625347);g.strokeRoundedRect(4,4,164,18,3);
+      for(let x=28;x<168;x+=42)g.lineBetween(x,5,x+13,22);
+    });
+    make('lever',44,55,g=>{
+      g.fillStyle(0x808e9e);g.fillRoundedRect(3,41,38,11,3);
+      g.lineStyle(6,C.gold);g.lineBetween(21,43,32,12);g.fillStyle(0xffe0a5);g.fillCircle(32,12,9);
+    });
+    make('door',110,151,g=>{
+      g.fillStyle(0x758293);g.fillRoundedRect(0,0,110,151,40);
+      g.fillStyle(0x2f3d4b);g.fillRoundedRect(9,12,92,136,34);
+      g.lineStyle(4,C.gold);g.strokeRoundedRect(9,12,92,136,34);
+      g.fillStyle(0xf6d9a1,0.42);g.fillEllipse(55,91,52,84);
+      g.fillStyle(0xffe1a8);g.fillCircle(55,67,7);
+    });
+    make('gate',40,310,g=>{
+      g.fillStyle(0xa64f5d);g.fillRoundedRect(0,0,40,310,7);
+      g.lineStyle(3,0xe7a3a5);for(let i=7;i<39;i+=10)g.lineBetween(i,8,i,300);
+    });
+    make('square',8,8,g=>{g.fillStyle(0xffffff);g.fillRect(0,0,8,8);});
+    g.destroy();
+  }
+
+  drawEnvironment(){
+    const g=this.add.graphics().setDepth(-30);
+    g.fillGradientStyle(0x142232,0x1e2e40,0x2c4051,0x35475a,1);g.fillRect(0,0,WORLD.width,WORLD.height);
+    for(let i=0;i<14;i++){
+      const x=i*150-45, h=290+(i%4)*34;
+      g.fillStyle(0x9ba8b6,0.075);g.fillRoundedRect(x,WORLD.ground-h,86,h,28);
+      g.lineStyle(12,0xc4ccda,0.04);g.strokeRoundedRect(x-15,WORLD.ground-h-45,116,148,46);
+    }
+    const fog=this.add.graphics().setDepth(-20);
+    fog.fillStyle(0xb5c6ce,0.035);fog.fillRect(0,435,WORLD.width,170);
+    for(let i=0;i<37;i++)this.add.circle(34+i*59,150+(i%7)*43,1.8,0xffd99b,0.35).setDepth(-10);
+  }
+
+  createTerrain(){
+    this.solids=this.physics.add.staticGroup();
+    this.terrain(0,WORLD.ground,1090,115);
+    this.terrain(1320,WORLD.ground,460,115);
+    // A ledge is deliberately unreachable from ground without the 68px crate.
+    this.terrain(445,437,182,24);
+    this.terrain(1430,515,125,18); // Optional lookout; never required.
+  }
+  terrain(x,top,width,height){
+    const o=this.add.rectangle(x+width/2,top+height/2,width,height,C.stone).setDepth(3);
+    o.setStrokeStyle(1,0x374858);this.solids.add(o);o.body.updateFromGameObject();
+    this.add.rectangle(x+width/2,top+4,width,8,C.edge).setDepth(4);
+    return o;
+  }
+
+  createPuzzle(){
+    this.gate=this.physics.add.staticImage(719,450,'gate').setDepth(12);
+    this.lever=this.add.image(546,408,'lever').setDepth(10);
+    this.gateCable=this.add.graphics().setDepth(2);
+    this.gateCable.lineStyle(3,C.gold,0.7).beginPath().moveTo(546,365).lineTo(620,365).lineTo(620,290).lineTo(719,290).lineTo(719,293).strokePath();
+    this.crate=this.physics.add.staticImage(226,groundCenter(68),'crate').setDepth(9);
+    this.plateX=869;
+    this.plate=this.add.rectangle(this.plateX,599,104,12,0xd7ac64).setDepth(11);
+    this.plateCable=this.add.graphics().setDepth(2);
+    this.plateCable.lineStyle(3,0xb3b5a3,0.55).beginPath().moveTo(869,598).lineTo(869,520).lineTo(980,520).strokePath();
+    this.beamPedestal=this.add.rectangle(975,590,202,36,0x33495a).setStrokeStyle(2,C.gold,0.65).setDepth(4);
+    this.beam=this.physics.add.staticImage(975,groundCenter(27)-24,'beam').setDepth(10);
+    this.beam.disableBody(true,true);
+    this.socket=this.add.rectangle(1050,568,68,56,0xeec783,0.14).setStrokeStyle(2,C.gold,0.85).setDepth(5);
+    this.bridgeGhost=this.add.rectangle((WORLD.gapStart+WORLD.gapEnd)/2,WORLD.ground-12,WORLD.gapEnd-WORLD.gapStart,24,0xf4cb7d,0.10).setStrokeStyle(2,C.gold,0.55).setDepth(3);
+    this.bridge=this.add.rectangle(1205,593,230,24,0xc4a276).setDepth(7).setVisible(false);
+    this.exit=this.add.image(1640, WORLD.ground-75,'door').setDepth(9);
+  }
+
+  createPlayers(){
+    this.ninja=this.physics.add.sprite(103,WORLD.ground-35,'ninja').setDepth(14).setSize(36,60).setCollideWorldBounds(true);
+    this.bolt=this.physics.add.sprite(167,WORLD.ground-40,'bolt').setDepth(14).setSize(66,72).setCollideWorldBounds(true);
+    this.ninja.setMaxVelocity(270,650).setDragX(1100);
+    this.bolt.setMaxVelocity(205,650).setDragX(1200);
+    for(const o of [this.ninja,this.bolt])this.physics.add.collider(o,this.solids);
+    this.physics.add.collider(this.ninja,this.crate);
+    this.physics.add.collider(this.bolt,this.crate);
+    for(const o of [this.ninja,this.bolt])this.physics.add.collider(o,this.gate);
+    this.carryVisual=this.add.image(0,0,'crate').setDepth(16).setVisible(false);
+    this.jumpMemory={ninja:{grounded:-10000,pressed:-10000},bolt:{grounded:-10000,pressed:-10000}};
+    this.groundMarkers=this.add.graphics().setDepth(8);
+  }
+
+  configureInputs(){
+    this.keys=this.input.keyboard.addKeys({
+      na:'A', nd:'D', nw:'W', nf:'F',
+      bl:'LEFT', br:'RIGHT', bu:'UP', be:'ENTER',
+      restart:'R', hint:'H'
+    });
+    this.input.keyboard.addCapture(['UP','DOWN','LEFT','RIGHT','SPACE']);
+    this.input.keyboard.on('keydown-R',()=>this.scene.restart());
+    this.input.keyboard.on('keydown-H',()=>this.showHint());
+  }
+
+  createLabels(){
+    const text=(x,y,t,color=C.ink,size=14)=>this.add.text(x,y,t,{fontFamily:'Arial, sans-serif',fontSize:size+'px',fontStyle:'bold',color:'#'+color.toString(16).padStart(6,'0')}).setDepth(15);
+    text(38,305,'THE FORGOTTEN WORKSHOP',0xf1dab0,25);
+    text(40,343,'Two heroes. One way through.',0xb5c7d4,15);
+    text(74,493,'A / D · W',0x94d5e0,14);
+    text(145,458,'← → · ↑',0xf2cb9d,14);
+    text(452,379,'THE LEVER',0xe6c58b);
+    text(675,275,'GATE',0xf3a3a6);
+    text(821,563,'WEIGHT PLATE',0xe6c58b,13);
+    text(911,516,'SEALED BEAM',0xe6c58b,13);
+    text(1034,523,'BUILD',0xe6c58b,13);
+    text(1594,436,'THE EXIT',0xf6da9d,16);
+    this.prompt=this.add.text(0,0,'',{fontFamily:'Arial, sans-serif',fontSize:'14px',fontStyle:'bold',color:'#f9e7c4',backgroundColor:'#273a4c',padding:{x:9,y:7}}).setDepth(30).setVisible(false);
+  }
+
+  resetState(){
+    this.state={gateOpen:false,plateOn:false,beamReleased:false,bridgeBuilt:false,carried:null,complete:false,shownHint:false};
+    this.lastProgress=this.time.now;
+    this.notice('Find a way for both heroes to reach the exit.');
+    this.updateHud();
+    this.cameras.main.scrollX=0;
+  }
+
+  notice(message){
+    const toast=document.querySelector('#toast');
+    toast.textContent=message;toast.classList.add('show');
+    if(this.toastEvent)this.toastEvent.remove(false);
+    this.toastEvent=this.time.delayedCall(2800,()=>toast.classList.remove('show'));
+  }
+
+  updateHud(){
+    const s=this.state;
+    const status=s.complete?'WORKSHOP CLEARED':s.bridgeBuilt?'BRIDGE BUILT':s.plateOn?'THE BRIDGE':s.gateOpen?'THE WEIGHTED PLATE':'THE LOCKED GATE';
+    document.querySelector('#objective').textContent=status;
+    document.querySelector('#step').textContent=s.complete?'✓':s.bridgeBuilt?'03 / 03':s.gateOpen?'02 / 03':'01 / 03';
+  }
+
+  carryCrate(){
+    this.state.carried='crate';this.crate.disableBody(true,true);
+    this.carryVisual.setTexture('crate').setScale(0.85).setVisible(true);
+  }
+
+  dropCrate(){
+    // A deliberate snap radius makes the weight puzzle readable, not pixel-perfect.
+    let x=Phaser.Math.Clamp(this.bolt.x+(this.bolt.flipX?-67:67),55,1050);
+    if(Math.abs(x-this.plateX)<92)x=this.plateX;
+    // Do not allow the crate to be lost beyond the gate or embedded in a wall.
+    if(x>693&&x<745)x=this.bolt.x<719?670:774;
+    this.crate.enableBody(true,x,groundCenter(68),true,true);
+    this.crate.refreshBody();
+    this.state.carried=null;this.carryVisual.setVisible(false);
+  }
+
+  carryBeam(){
+    this.state.carried='beam';this.beam.disableBody(true,true);
+    this.carryVisual.setTexture('beam').setScale(0.85).setVisible(true);
+  }
+
+  dropBeam(){
+    const x=Phaser.Math.Clamp(this.bolt.x+(this.bolt.flipX?-75:75),830,1050);
+    this.beam.enableBody(true,x,groundCenter(27),true,true);
+    this.beam.refreshBody();
+    this.state.carried=null;this.carryVisual.setVisible(false);
+  }
+
+  ninjaInteract(){
+    if(this.state.gateOpen)return;
+    if(near(this.ninja,this.lever,93)){
+      this.state.gateOpen=true;this.gate.disableBody(true,true);
+      this.add.circle(546,393,36,C.green,.2).setDepth(1);
+      this.lastProgress=this.time.now;this.updateHud();
+      this.notice('The gate is open. What else could that heavy block do?');
+    }
+  }
+
+  boltInteract(){
+    const s=this.state;
+    if(s.carried==='crate'){this.dropCrate();return;}
+    if(s.carried==='beam'){
+      if(this.bolt.x>984&&this.bolt.x<1092&&!s.bridgeBuilt){
+        s.carried=null;this.carryVisual.setVisible(false);s.bridgeBuilt=true;
+        this.beam.disableBody(true,true);this.bridge.setVisible(true);
+        this.physics.add.existing(this.bridge,true);this.bridge.body.updateFromGameObject();
+        this.physics.add.collider(this.ninja,this.bridge);this.physics.add.collider(this.bolt,this.bridge);
+        this.socket.setVisible(false);this.bridgeGhost.setVisible(false);
+        this.lastProgress=this.time.now;this.updateHud();
+        this.notice('Bridge assembled! Both heroes can reach the exit.');
+      }else this.dropBeam();
+      return;
+    }
+    if(!s.bridgeBuilt&&s.beamReleased&&near(this.bolt,this.beam,125)){this.carryBeam();return;}
+    if(near(this.bolt,this.crate,115)){this.carryCrate();return;}
+  }
+
+  showHint(){
+    const s=this.state;
+    const hint=!s.gateOpen?'The lever is too high. Can one character reposition something heavy?':
+      !s.plateOn?'The block opened a path once. Look for another place its weight could help.':
+      !s.bridgeBuilt?'A beam has been released. Bolt can carry and install it near the gap.':
+      'The door needs both heroes.';
+    this.notice(hint);s.shownHint=true;
+  }
+
+  move(hero,keys,speed,jump,dt,memory){
+    const body=hero.body;const left=keys[0].isDown,right=keys[1].isDown;
+    const grounded=body.blocked.down||body.touching.down;
+    if(grounded)memory.grounded=this.time.now;
+    if(Phaser.Input.Keyboard.JustDown(keys[2]))memory.pressed=this.time.now;
+    const acceleration = 1650;
+    const target=left?-speed:right?speed:0;
+    const increment=acceleration*dt/1000;
+    hero.setVelocityX(Phaser.Math.Linear(body.velocity.x,target,Math.min(1,increment/(Math.abs(target-body.velocity.x)||1))));
+    if(left||right)hero.setFlipX(left);
+    if(this.time.now-memory.pressed<120&&this.time.now-memory.grounded<95){
+      hero.setVelocityY(-jump);memory.pressed=-99999;memory.grounded=-99999;
+    }
+  }
+
+  update(_time,delta){
+    const s=this.state;
+    if(s.complete)return;
+    this.move(this.ninja,[this.keys.na,this.keys.nd,this.keys.nw],260,545,delta,this.jumpMemory.ninja);
+    this.move(this.bolt,[this.keys.bl,this.keys.br,this.keys.bu],195,342,delta,this.jumpMemory.bolt);
+    if(Phaser.Input.Keyboard.JustDown(this.keys.nf))this.ninjaInteract();
+    if(Phaser.Input.Keyboard.JustDown(this.keys.be))this.boltInteract();
+
+    if(s.carried){
+      const pos=s.carried==='crate'?{x:58,y:-50}:{x:70,y:-45};
+      this.carryVisual.setPosition(this.bolt.x+(this.bolt.flipX?-pos.x:pos.x),this.bolt.y+pos.y);
+    }
+    const plateOn = !s.carried && Math.abs(this.crate.x-this.plateX)<12 && this.crate.visible;
+    if(plateOn!==s.plateOn){
+      s.plateOn=plateOn;
+      this.plate.setFillStyle(plateOn?C.green:0xd7ac64);
+      if(plateOn&&!s.beamReleased){
+        s.beamReleased=true;
+        this.beam.enableBody(true,975,groundCenter(27)-24,true,true);
+        this.beam.refreshBody();
+        this.lastProgress=this.time.now;
+        this.notice('The storage lock released a long bridge beam.');
+      }
+      this.updateHud();
+    }
+    this.prompt.setVisible(false);
+    const prompt=(obj,t)=>{
+      this.prompt.setText(t).setPosition(obj.x-84,obj.y-111).setVisible(true);
+    };
+    if(!s.gateOpen&&near(this.ninja,this.lever,93))prompt(this.ninja,'F  ·  Pull lever');
+    else if(s.carried==='beam'&&this.bolt.x>984&&this.bolt.x<1092)prompt(this.bolt,'ENTER  ·  Build bridge');
+    else if(s.carried)prompt(this.bolt,'ENTER  ·  Place down');
+    else if(s.beamReleased&&!s.bridgeBuilt&&near(this.bolt,this.beam,125))prompt(this.bolt,'ENTER  ·  Carry beam');
+    else if(near(this.bolt,this.crate,115))prompt(this.bolt,'ENTER  ·  Lift block');
+
+    // Checkpoints avoid forcing either player to replay the whole tutorial.
+    for(const [hero,key] of [[this.ninja,'ninja'],[this.bolt,'bolt']]){
+      if(hero.y>700){
+        const fallback=s.bridgeBuilt?1352:s.gateOpen?760:90;
+        hero.setPosition(fallback+(key==='bolt'?75:0),WORLD.ground-(key==='ninja'?35:41)).setVelocity(0,0);
+        this.notice('Back on solid ground — keep experimenting.');
+      }
+    }
+    if(s.bridgeBuilt&&this.ninja.x>1592&&this.bolt.x>1592){
+      s.complete=true;this.physics.pause();this.updateHud();
+      this.notice('LEVEL COMPLETE — You solved it together!');
+      document.querySelector('#victory').classList.add('visible');
+    }
+
+    // Shared camera: adapts to the two heroes without stealing control.
+    const separation=Math.abs(this.ninja.x-this.bolt.x);
+    const zoom=Phaser.Math.Clamp(1-(Math.max(0,separation-650)/1050),0.83,1);
+    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,zoom,0.045));
+    const focus=(this.ninja.x+this.bolt.x)/2;
+    const viewWidth=1280/this.cameras.main.zoom;
+    const desired=Phaser.Math.Clamp(focus-viewWidth/2,0,WORLD.width-viewWidth);
+    this.cameras.main.scrollX=Phaser.Math.Linear(this.cameras.main.scrollX,desired,.08);
+  }
 }
-new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:720,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{y:950},debug:false}},scene:[Workshop]});
+
+new Phaser.Game({
+  type:Phaser.AUTO,parent:'game',width:1280,height:720,
+  scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+  physics:{default:'arcade',arcade:{gravity:{y:1150},debug:false}},
+  scene:[Workshop],render:{pixelArt:false,antialias:true}
+});
