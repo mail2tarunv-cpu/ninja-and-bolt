@@ -1,1 +1,35 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ninja & Bolt</title></head><body><header><div><strong>NINJA <em>&</em> BOLT</strong><small>THE FORGOTTEN WORKSHOP · GREYBOX</small></div><div class="progress"><span id="objective">Reach the lever</span><span id="step">01 / 04</span></div><button id="restart">↺ Restart</button></header><main id="game"></main><footer><span><b>Ninja</b> A / D move · W jump · F interact</span><span><b>Bolt</b> ← / → move · ↑ jump · Enter interact</span><span>2 players · 1 keyboard</span></footer><div id="toast"></div><script type="module" src="/src/main.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#101923" />
+  <title>Ninja & Bolt — The Forgotten Workshop</title>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>NINJA <em>&</em> BOLT</strong>
+      <small>THE FORGOTTEN WORKSHOP / LEVEL 01</small>
+    </div>
+    <div class="level-status">
+      <span class="eyebrow">CURRENT DISCOVERY</span>
+      <span id="objective">THE LOCKED GATE</span>
+      <span id="step" class="counter">01 / 03</span>
+    </div>
+    <div class="actions">
+      <button id="hint" type="button">? Hint <span>H</span></button>
+      <button id="restart" type="button">↺ Restart <span>R</span></button>
+    </div>
+  </header>
+  <main id="game" aria-label="Ninja and Bolt playable cooperative puzzle game"></main>
+  <section class="instructions" aria-label="Two-player keyboard controls">
+    <div class="control"><span class="player-tag ninja-tag">NINJA</span> <b>A</b> <b>D</b> move · <b>W</b> jump · <b>F</b> interact</div>
+    <div class="control"><span class="player-tag bolt-tag">BOLT</span> <b>←</b> <b>→</b> move · <b>↑</b> jump · <b>Enter</b> lift / place / build</div>
+    <span class="keyboard-note">Two players · one keyboard · no assets yet</span>
+  </section>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="victory" aria-live="polite"><div class="victory-card"><span>LEVEL 01 COMPLETE</span><h1>Built together.</h1><p>One block. Two jobs. Two heroes through the door.</p><button onclick="location.reload()">Play again ↺</button></div></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
