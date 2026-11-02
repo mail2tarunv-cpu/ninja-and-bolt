@@ -11,3 +11,9 @@
 #toast{position:fixed;z-index:40;left:50%;top:92px;transform:translateX(-50%);border-radius:10px;padding:13px 19px;background:#233449;border:1px solid #647c94;box-shadow:0 12px 35px #0007;max-width:85vw;text-align:center;font-size:13px;color:#f6e5c3;opacity:0;pointer-events:none;transition:opacity .18s}#toast.show{opacity:1}
 #victory{position:fixed;inset:0;z-index:50;background:#081019c4;display:none;place-items:center}#victory.visible{display:grid}.victory-card{width:min(440px,90vw);padding:42px;text-align:center;border:1px solid #587184;background:#1c2d3f;border-radius:18px;box-shadow:0 30px 90px #0009}.victory-card>span{color:#f4d291;letter-spacing:2px;font-size:11px;font-weight:800}.victory-card h1{font-size:42px;letter-spacing:-2px}.victory-card p{color:#b5c5d1;line-height:1.5}
 @media(max-width:850px){.topbar{flex-wrap:wrap;padding-block:20px;gap:13px}.level-status{border-left:none;padding-left:0;order:3;flex-basis:100%}.keyboard-note{margin-left:0}}
+/* Greybox level selector */
+.level-select{display:flex;gap:3px;background:#101e2d;border:1px solid #3c4d60;padding:4px;border-radius:10px}
+.level-select button{font-size:11px;padding:9px 11px;background:transparent;border:0;color:#a9bbcb;white-space:nowrap;border-radius:6px}
+.level-select button[aria-pressed="true"]{background:#36475a;color:#ffe0aa;box-shadow:0 1px 4px #0006}
+.level-select button:hover{background:#2d4053;color:#f7e7c7}
+@media(max-width:1100px){.topbar{flex-wrap:wrap;gap:10px;padding-block:18px}.level-status{max-width:300px}.level-select{order:3}}
