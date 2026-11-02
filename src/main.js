@@ -12,7 +12,6 @@ class Workshop extends Phaser.Scene {
   this.platform(0,620,550,100);this.platform(600,620,1080,100);this.platform(2180,620,1120,100);
   this.platform(220,547,115,22);this.platform(330,480,115,22);this.platform(442,402,210,22);
   this.platform(890,535,120,22);this.platform(1100,480,125,22);this.platform(2540,528,150,20);
-  this.physics.add.staticImage(700,550,'gate').setDepth(6);this.gate=this.floor.getChildren().at(-1);
   // Gate is a separate blocking body and can be removed after activating the lever.
   this.gate=this.physics.add.staticImage(700,553,'gate').setDepth(7);
   this.lever=this.add.image(544,367,'lever').setDepth(7);
