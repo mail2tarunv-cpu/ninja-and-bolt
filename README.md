@@ -1,8 +1,8 @@
-# Ninja & Bolt — The Forgotten Workshop
+# Ninja & Bolt — Greybox co-op puzzle platformer
 
-A cooperative, **two-player** puzzle-platformer greybox running on **Phaser 3 + Vite**. The Level 1 map has been redesigned around one reusable block rather than a 3,300-pixel instruction corridor.
+Two-player browser game made with **Phaser 3 + Vite**, deployed from GitHub to Vercel. Choose a level from the header. Final character sprites, textures, and sound are intentionally not included.
 
-## Run
+## Run locally
 
 ```bash
 npm install
@@ -13,32 +13,48 @@ npm run dev
 
 | Action | Ninja | Bolt |
 | --- | --- | --- |
-| Move | A / D | ← / → |
-| Jump | W | ↑ |
+| Move | A / D | Left / Right arrows |
+| Jump | W | Up arrow |
 | Interact | F | Enter |
 
-**H** for optional hint, **R** for restart. Best played with two people sharing a desktop keyboard.
+**H** opens the optional hint. **R** restarts the currently selected level. Two people share one keyboard.
 
-## Level 1 — Intended solution
+## Level 01 — The Forgotten Workshop
 
-1. **Make a step.** Bolt carries the heavy stone block to the elevated ledge, then places it. Ninja jumps onto the block, then to the high lever.
-2. **Open the gate.** Ninja pulls the lever; the gate opens permanently, and Bolt can carry the block through.
-3. **Reuse the block.** Bolt puts that *same block* onto the pressure plate beyond the gate, unlocking a bridge beam.
-4. **Build.** Bolt carries the beam to the construction socket at the gap, then installs it. The new bridge has collision for both heroes.
-5. **Exit together.** Both cross to the glowing door.
+Bolt repositions one heavy stone block as a step so Ninja can reach a high lever. Ninja opens a gate. Bolt reuses the same block to hold a pressure plate, unlock a bridge beam, and build a route to the shared exit.
 
-The interface gives interaction prompts only when players are near objects. An optional hint is available; the intended solution is not printed on screen.
+## Level 02 — The Counterweight Foundry (new)
 
-### Implementation notes
-- Compact 1,780px room; static terrain with separate collision; no final images or audio
-- Ninja jumps higher; Bolt can carry heavy objects; crate is solid when placed
-- Gate, lever, pressure plate, unlockable beam, and buildable bridge
-- Camera tracks both players with modest separation-based zoom
-- Falling into a pit respawns a hero safely; restart and success overlay included
-- All gameplay remains in `src/main.js` for now, and the visual elements are procedural
+A separate mechanics-focused level introducing two types of construction:
 
-### Deployment
-Import this repository on Vercel as a **Vite** app (`npm run build`, output `dist`).
+**A. Assemble and use a seesaw / ramp**
 
-### Status
-Code committed for browser playtesting. Gameplay balance, placement tolerances, and any keyboard/browser behavior still require a live two-player test. Final sprites, tiles, parallax, sound, and Level 2 are intentionally postponed.
+1. Bolt lifts the long loose plank at the start and carries it to the marked pivot.
+2. Press Enter near the pivot to attach the plank and create the seesaw.
+3. Bolt stands on the **left side** of the board; the heavier character tilts it, raising the **right side**.
+4. Ninja uses the raised right side to jump to the otherwise unreachable upper ledge and pull the switch. This opens the storage gate.
+
+**B. Assemble a pulley and balance the counterweights**
+
+5. Bolt picks up the loose **wheel**, carries it to the gold assembly bench, and installs it using Enter.
+6. Bolt repeats this for the loose **rope spool**. The assembled overhead pulley now connects the lower lift to the hanging basket.
+7. Ninja stands on the lower lift. Bolt chooses a **light** or **heavy** counterweight, picks it up, and attaches it to the basket using Enter.
+8. The basket moves down and the lift rises. The light weight raises it partway; the heavy weight lifts it high enough to reach the upper walkway. You can remove a weight from the basket and try a different one.
+9. Ninja reaches the upper switch to open the final gate. Both characters meet at the shared exit.
+
+### Current implementation
+
+- Weight-responsive, visually tilting seesaw with a series of moving, one-way collision segments (a controlled approximation, not full rigid-body simulation)
+- Player-carried plank and snap-to-pivot assembly
+- Wheel and rope components that must each be installed
+- Counterweight lift with weight-dependent heights and animated rope/basket
+- Two separate weight objects, attachment/removal, interaction prompts, hints and shared exit
+- Level selector so Level 01 is preserved
+
+### Known prototype limits
+
+The pulley and seesaw use intentionally **kinematic / rule-based physics**. They visually and mechanically respond to player input but do not yet model actual rope tension or unconstrained rigid-body dynamics. Fine movement, collision tolerances and the moving-platform ride must be verified in a live browser with two players. The Vercel build being successful does not establish that the puzzles are perfectly playable.
+
+## Deployment
+
+Vercel: build command `npm run build`, output directory `dist`. GitHub pushes to the configured production branch automatically trigger Vercel builds.
