@@ -170,6 +170,7 @@ class Workshop extends Phaser.Scene {
   resetState(){
     this.state={gateOpen:false,plateOn:false,beamReleased:false,bridgeBuilt:false,carried:null,complete:false,shownHint:false};
     this.lastProgress=this.time.now;
+    document.getElementById('victory').classList.remove('visible');
     this.notice('Find a way for both heroes to reach the exit.');
     this.updateHud();
     this.cameras.main.scrollX=0;
@@ -184,7 +185,7 @@ class Workshop extends Phaser.Scene {
 
   updateHud(){
     const s=this.state;
-    const status=s.complete?'WORKSHOP CLEARED':s.bridgeBuilt?'BRIDGE BUILT':s.plateOn?'THE BRIDGE':s.gateOpen?'THE WEIGHTED PLATE':'THE LOCKED GATE';
+    const status=s.complete?'WORKSHOP CLEARED':s.bridgeBuilt?'BRIDGE BUILT':s.beamReleased?'THE BRIDGE':s.gateOpen?'THE WEIGHTED PLATE':'THE LOCKED GATE';
     document.querySelector('#objective').textContent=status;
     document.querySelector('#step').textContent=s.complete?'✓':s.bridgeBuilt?'03 / 03':s.gateOpen?'02 / 03':'01 / 03';
   }
@@ -263,7 +264,9 @@ class Workshop extends Phaser.Scene {
     const acceleration = 1650;
     const target=left?-speed:right?speed:0;
     const increment=acceleration*dt/1000;
-    hero.setVelocityX(Phaser.Math.Linear(body.velocity.x,target,Math.min(1,increment/(Math.abs(target-body.velocity.x)||1))));
+    const previous=body.velocity.x;
+    const next=previous<target?Math.min(previous+increment,target):Math.max(previous-increment,target);
+    hero.setVelocityX(next);
     if(left||right)hero.setFlipX(left);
     if(this.time.now-memory.pressed<120&&this.time.now-memory.grounded<95){
       hero.setVelocityY(-jump);memory.pressed=-99999;memory.grounded=-99999;
@@ -282,7 +285,7 @@ class Workshop extends Phaser.Scene {
       const pos=s.carried==='crate'?{x:58,y:-50}:{x:70,y:-45};
       this.carryVisual.setPosition(this.bolt.x+(this.bolt.flipX?-pos.x:pos.x),this.bolt.y+pos.y);
     }
-    const plateOn = !s.carried && Math.abs(this.crate.x-this.plateX)<12 && this.crate.visible;
+    const plateOn = s.carried!=='crate' && Math.abs(this.crate.x-this.plateX)<12 && this.crate.visible;
     if(plateOn!==s.plateOn){
       s.plateOn=plateOn;
       this.plate.setFillStyle(plateOn?C.green:0xd7ac64);
@@ -321,7 +324,7 @@ class Workshop extends Phaser.Scene {
 
     // Shared camera: adapts to the two heroes without stealing control.
     const separation=Math.abs(this.ninja.x-this.bolt.x);
-    const zoom=Phaser.Math.Clamp(1-(Math.max(0,separation-650)/1050),0.83,1);
+    const zoom=Phaser.Math.Clamp(1-(Math.max(0,separation-650)/1050),0.90,1);
     this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,zoom,0.045));
     const focus=(this.ninja.x+this.bolt.x)/2;
     const viewWidth=1280/this.cameras.main.zoom;
