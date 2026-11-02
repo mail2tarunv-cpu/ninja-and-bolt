@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Foundry } from './foundry.js';
 import './style.css';
 
 // Gameplay-only greybox. Every measurement uses game-world pixels.
@@ -148,8 +149,14 @@ class Workshop extends Phaser.Scene {
       restart:'R', hint:'H'
     });
     this.input.keyboard.addCapture(['UP','DOWN','LEFT','RIGHT','SPACE']);
-    this.input.keyboard.on('keydown-R',()=>this.scene.restart());
-    this.input.keyboard.on('keydown-H',()=>this.showHint());
+    const restart=()=>this.scene.restart();
+    const hint=()=>this.showHint();
+    this.input.keyboard.on('keydown-R',restart);
+    this.input.keyboard.on('keydown-H',hint);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
+      this.input.keyboard.off('keydown-R',restart);
+      this.input.keyboard.off('keydown-H',hint);
+    });
   }
 
   createLabels(){
@@ -171,6 +178,7 @@ class Workshop extends Phaser.Scene {
     this.state={gateOpen:false,plateOn:false,beamReleased:false,bridgeBuilt:false,carried:null,complete:false,shownHint:false};
     this.lastProgress=this.time.now;
     document.getElementById('victory').classList.remove('visible');
+    document.querySelector('#victory button').onclick=()=>this.scene.restart();
     this.notice('Find a way for both heroes to reach the exit.');
     this.updateHud();
     this.cameras.main.scrollX=0;
@@ -333,9 +341,26 @@ class Workshop extends Phaser.Scene {
   }
 }
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type:Phaser.AUTO,parent:'game',width:1280,height:720,
   scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
   physics:{default:'arcade',arcade:{gravity:{y:1150},debug:false}},
-  scene:[Workshop],render:{pixelArt:false,antialias:true}
+  scene:[Workshop,Foundry],render:{pixelArt:false,antialias:true}
 });
+
+function switchLevel(key){
+  game.scene.stop('Workshop');
+  game.scene.stop('Foundry');
+  document.querySelector('#levelTitle').textContent =
+    key === 'Foundry' ? 'THE COUNTERWEIGHT FOUNDRY / LEVEL 02' : 'THE FORGOTTEN WORKSHOP / LEVEL 01';
+  document.querySelector('#victory').classList.remove('visible');
+  document.querySelector('#level1').setAttribute('aria-pressed', String(key==='Workshop'));
+  document.querySelector('#level2').setAttribute('aria-pressed', String(key==='Foundry'));
+  document.querySelector('#victory .victory-card>span').textContent='LEVEL 01 COMPLETE';
+  document.querySelector('#victory .victory-card h1').textContent='Built together.';
+  document.querySelector('#victory .victory-card p').textContent='One block. Two jobs. Two heroes through the door.';
+  game.scene.start(key);
+}
+
+document.querySelector('#level1').addEventListener('click',()=>switchLevel('Workshop'));
+document.querySelector('#level2').addEventListener('click',()=>switchLevel('Foundry'));
