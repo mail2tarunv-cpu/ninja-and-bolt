@@ -82,9 +82,11 @@ export class Foundry extends Phaser.Scene {
     this.add.rectangle(x+w/2,y+3,w,6,K.edge).setDepth(4);
   }
   makeSeesaw(){
-    this.pivot={x:505,y:559};
-    this.angle=0;this.targetAngle=0;
-    this.plank=this.add.rectangle(this.pivot.x,this.pivot.y,342,18,0xd6ad76).setStrokeStyle(3,0x826247).setDepth(9);
+    this.pivot={x:505,y:580};
+    this.angle=0;this.targetAngle=0;this.seesawReady=false;
+    this.plankKit=this.add.image(257,GROUND-14,'beam').setDepth(10);
+    this.plank=this.add.rectangle(this.pivot.x,this.pivot.y,342,18,0xd6ad76).setStrokeStyle(3,0x826247).setDepth(9).setVisible(false);
+    this.pivotSocket=this.add.circle(this.pivot.x,this.pivot.y,31,0xeecb88,0.13).setStrokeStyle(2,K.gold,0.7).setDepth(7);
     this.add.triangle(this.pivot.x,590,0,30,28,0,56,30,0x788898).setStrokeStyle(2,K.gold).setDepth(8);
     this.segments=[];
     for(let i=0;i<15;i++){
@@ -94,10 +96,11 @@ export class Foundry extends Phaser.Scene {
       seg.body.checkCollision.left=false;
       seg.body.checkCollision.right=false;
       seg.body.checkCollision.down=false;
+      seg.disableBody(true,true);
       this.segments.push({dx,seg});
     }
     this.torqueText=this.add.text(366,488,'',{fontSize:'13px',fontFamily:'Arial',color:'#e9c997'}).setDepth(13);
-    this.tiltIndicator=this.add.text(337,512,'BOLT’S WEIGHT CAN TILT THE PLANK',{fontSize:'11px',color:'#a9c0d1'}).setDepth(13);
+    this.tiltIndicator=this.add.text(335,512,'ASSEMBLE THE PLANK ON THE PIVOT',{fontSize:'11px',color:'#a9c0d1'}).setDepth(13);
   }
   makePulley(){
     this.switch=this.add.rectangle(845,394,26,24,0xf0c67e).setDepth(11);
@@ -184,13 +187,14 @@ export class Foundry extends Phaser.Scene {
   }
   displayHud(){
     const s=this.state;
-    const stage=s.completed?'FOUNDRY COMPLETE':s.exitOpen?'THE EXIT':s.wheelInstalled&&s.ropeInstalled?'BALANCE THE LIFT':s.switchOn?'ASSEMBLE THE PULLEY':'THE HIGH SWITCH';
+    const stage=s.completed?'FOUNDRY COMPLETE':s.exitOpen?'THE EXIT':s.wheelInstalled&&s.ropeInstalled?'BALANCE THE LIFT':s.switchOn?'ASSEMBLE THE PULLEY':this.seesawReady?'THE HIGH SWITCH':'ASSEMBLE THE SEESAW';
     document.querySelector('#objective').textContent=stage;
     document.querySelector('#step').textContent=s.completed?'✓':s.exitOpen?'04 / 04':s.wheelInstalled&&s.ropeInstalled?'03 / 04':s.switchOn?'02 / 04':'01 / 04';
   }
   showHint(){
     const s=this.state;
-    const text=!s.switchOn?'The plank moves with weight. Can Bolt hold one side while Ninja climbs the other?':
+    const text=!this.seesawReady?'Bolt can carry the long plank to the gold pivot, then attach it with Enter.':
+      !s.switchOn?'The plank tilts under weight. Bolt should stand on its left side as Ninja climbs the right.':
       !(s.wheelInstalled&&s.ropeInstalled)?'Bolt can install the loose wheel and rope at the gold assembly bench.':
       s.loadedWeight<3?'Try loading different weights into the basket. A lighter block only raises the platform partway.':
       !s.exitOpen?'Ninja can ride the lift to the upper walkway and reach the final switch.':'Bring both characters to the exit.';
@@ -246,6 +250,25 @@ export class Foundry extends Phaser.Scene {
   }
   boltInteract(){
     const s=this.state, key=s.carried;
+    if(key==='plank'){
+      if(this.bolt.x>420&&this.bolt.x<585){
+        this.seesawReady=true;this.plankKit.setVisible(false);this.plank.setVisible(true);
+        this.pivotSocket.setVisible(false);
+        for(const {dx,seg} of this.segments){
+          seg.enableBody(false,this.pivot.x+dx,this.pivot.y,true,false);seg.refreshBody();
+        }
+        s.carried=null;this.carriedArt.setVisible(false);
+        this.tiltIndicator.setText('STAND ON OPPOSITE ENDS TO TILT');
+        this.toast('Seesaw assembled! Bolt’s weight can raise Ninja’s side.');
+        this.displayHud();return;
+      }
+      this.plankKit.setPosition(Phaser.Math.Clamp(this.bolt.x+70,75,690),GROUND-14).setVisible(true);
+      s.carried=null;this.carriedArt.setVisible(false);return;
+    }
+    if(!key&&!this.seesawReady&&this.plankKit.visible&&close(this.bolt,this.plankKit,125)){
+      s.carried='plank';this.plankKit.setVisible(false);
+      this.carriedArt.setTexture('beam').setScale(0.92).setVisible(true);return;
+    }
     if(key){
       if((key==='wheel'||key==='rope')&&this.bolt.x>1360&&this.bolt.x<1540){this.install(key);return;}
       if((key==='light'||key==='heavy')&&this.bolt.x>1602&&this.bolt.x<1743&&this.machineReady){this.load(key);return;}
@@ -275,16 +298,18 @@ export class Foundry extends Phaser.Scene {
     }
   }
   onBoard(hero){
+    if(!this.seesawReady)return false;
     const dx=hero.x-this.pivot.x;
     const top=this.pivot.y+Math.tan(this.angle)*dx;
     const feet=hero.body.bottom;
-    return Math.abs(dx)<159&&Math.abs(feet-top)<42&&hero.body.velocity.y>=-25;
+    return Math.abs(dx)<159&&Math.abs(feet-top)<27&&hero.body.velocity.y>=-25;
   }
   updateBoard(){
+    if(!this.seesawReady){this.torqueText.setText('UNASSEMBLED');return;}
     // Bolt is ~2.7x the Ninja's effective weight.
     const boltOn=this.onBoard(this.bolt),ninjaOn=this.onBoard(this.ninja);
     const torque=(boltOn?2.7*(this.bolt.x-this.pivot.x):0)+(ninjaOn?1*(this.ninja.x-this.pivot.x):0);
-    this.targetAngle=Phaser.Math.Clamp(torque/1100,-0.31,0.31);
+    this.targetAngle=Phaser.Math.Clamp(torque/960,-0.31,0.31);
     this.angle=Phaser.Math.Linear(this.angle,this.targetAngle,0.06);
     this.plank.setRotation(this.angle);
     for(const {dx,seg} of this.segments){
@@ -333,7 +358,9 @@ export class Foundry extends Phaser.Scene {
     }
     this.prompt.setVisible(false);
     const prompt=(obj,str)=>this.prompt.setText(str).setPosition(obj.x-74,obj.y-112).setVisible(true);
-    if(!s.switchOn&&close(this.ninja,this.switch,96))prompt(this.ninja,'F · Pull switch');
+    if(s.carried==='plank'&&this.bolt.x>420&&this.bolt.x<585)prompt(this.bolt,'ENTER · Assemble seesaw');
+    else if(!this.seesawReady&&this.plankKit.visible&&close(this.bolt,this.plankKit,125))prompt(this.bolt,'ENTER · Lift plank');
+    else if(!s.switchOn&&close(this.ninja,this.switch,96))prompt(this.ninja,'F · Pull switch');
     else if(!s.exitOpen&&close(this.ninja,this.finalSwitch,96))prompt(this.ninja,'F · Open exit');
     else if(s.carried&&(s.carried==='wheel'||s.carried==='rope')&&this.bolt.x>1360&&this.bolt.x<1540)prompt(this.bolt,'ENTER · Install part');
     else if(s.carried&&(s.carried==='light'||s.carried==='heavy')&&this.bolt.x>1602&&this.bolt.x<1743&&this.machineReady)prompt(this.bolt,'ENTER · Attach weight');
