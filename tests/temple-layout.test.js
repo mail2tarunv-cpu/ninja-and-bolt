@@ -1,42 +1,70 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TEMPLE_LAYOUT as L } from '../src/temple-layout.js';
+import {MAP as M} from '../src/temple-layout.js';
 
-const jumpRise = L.ninjaJumpVelocity ** 2 / (2 * L.gravity);
-const seesawTip = board => board.y + Math.tan(L.tiltAngle) * board.span / 2;
+test('room matches the supplied screenshot proportions',()=>{
+ assert.equal(M.referenceWidth,581);
+ assert.equal(M.referenceHeight,437);
+ assert.equal(M.width,1162);
+ assert.equal(M.height,874);
+ assert.equal(M.scale,2);
+ assert.equal(M.lowerFloor-M.topFloor,176);
+});
 
-test('both seesaws have reachable ledges, but not from flat ground', () => {
-  for (const board of [L.first, L.second]) {
-    assert.ok(L.ground - board.ledgeY > jumpRise, 'upper ledge would be reachable without using seesaw');
-    assert.ok(seesawTip(board) - board.ledgeY < jumpRise, 'tilted seesaw must put upper ledge in jump range');
-    assert.ok(seesawTip(board) - board.ledgeY > 60, 'jump must retain meaningful challenge');
-    assert.ok(board.ledgeX - (board.x + board.span / 2) < 90, 'right board end should be near upper ledge');
-    assert.ok(board.switchX > board.ledgeX && board.switchX < board.ledgeX + board.ledgeWidth, 'switch must be on upper ledge');
-    assert.ok(board.padMin < board.padMax && board.padMax < board.x, 'Bolt pad must be left of pivot');
+test('one room shows exactly two separate floors and two seesaws',()=>{
+ assert.ok(M.upperSeesaw.y<M.topFloor);
+ assert.ok(M.lowerSeesaw.y>M.topFloor);
+ assert.ok(M.lowerSeesaw.y<M.lowerFloor);
+ assert.ok(M.upperSeesaw.x<M.lowerSeesaw.x);
+ assert.ok(M.upperSeesaw.length>180&&M.lowerSeesaw.length>180);
+});
+
+test('characters start on upper floor at opposing ends of first seesaw',()=>{
+ assert.ok(M.characters.bolt.x<M.upperSeesaw.x);
+ assert.ok(M.characters.ninja.x>M.upperSeesaw.x);
+ assert.ok(M.characters.ninja.y<M.topFloor);
+ assert.ok(M.characters.bolt.y<M.topFloor);
+ assert.ok(M.characters.ninja.x<M.referenceWidth);
+});
+
+test('colored portals remain at opposite edges of the upper floor',()=>{
+ assert.ok(M.upperPortal.blue.x<100);
+ assert.ok(M.upperPortal.red.x>480);
+ assert.ok(Math.abs(M.upperPortal.blue.y-M.topFloor)<10);
+ assert.ok(Math.abs(M.upperPortal.red.y-M.topFloor)<15);
+});
+
+test('doors occupy distinct heights on the lower-right wall',()=>{
+ assert.ok(M.exits.red.x>500 && M.exits.blue.x>500);
+ assert.ok(M.exits.red.y<M.exits.blue.y);
+ assert.ok(M.exits.blue.y<M.lowerFloor);
+ assert.ok(M.exits.red.y>M.topFloor);
+});
+
+test('gems replicate reference positions and colors',()=>{
+ assert.equal(M.crystals.red.length,3);
+ assert.equal(M.crystals.blue.length,7);
+ assert.equal(M.crystals.red.filter(([x,y])=>y<M.topFloor).length,2);
+ assert.equal(M.crystals.blue.filter(([x,y])=>y<M.topFloor).length,3);
+ for(const items of Object.values(M.crystals))
+  for(const [x,y] of items){
+   assert.ok(x>12&&x<M.referenceWidth-12);
+   assert.ok(y>20&&y<M.lowerFloor);
   }
 });
 
-test('light weight cannot reach upper walkway but heavy weight can', () => {
-  const upper = L.machine.upperY;
-  assert.ok(L.liftMidY - upper > jumpRise, 'lightweight lift should be deliberately insufficient');
-  assert.ok(L.liftHighY - upper < jumpRise, 'heavyweight lift should put upper route in jump reach');
-  assert.ok(L.machine.switchX > L.machine.upperX && L.machine.switchX < L.machine.upperX + L.machine.upperWidth, 'pulley switch on upper walkway');
+test('jump range is sufficient for the stacked floor obstacles',()=>{
+ const gravity=1350, jumpVelocity=755;
+ const rise=jumpVelocity**2/(2*gravity)/M.scale;
+ assert.ok(rise>90 && rise<120, 'jump should be approximately 100 reference pixels high');
+ assert.ok(Math.abs(M.lowerFloor-327)<rise);
 });
 
-test('gates and construction parts are traversed in intentional order', () => {
-  assert.ok(L.first.switchX < L.machine.gate1);
-  assert.ok(L.machine.gate1 < L.machine.bench);
-  assert.ok(L.machine.bench < L.machine.basketX);
-  assert.ok(L.machine.basketX < L.machine.switchX);
-  assert.ok(L.machine.switchX < L.second.gate2);
-  assert.ok(L.second.gate2 < L.second.plankX);
-  assert.ok(L.second.plankX < L.second.x);
-  assert.ok(L.second.switchX < L.exitGate);
-  assert.ok(L.exitGate < L.exitX && L.exitX < L.width);
-});
-
-test('camera and vertical level geometry remain in bounds', () => {
-  assert.ok(L.height > L.ground);
-  assert.ok(L.first.ledgeY > 250 && L.second.ledgeY > 250 && L.machine.upperY > 250);
-  assert.ok(L.width > 1280);
+test('reference-mapped ledges and walls stay within viewport',()=>{
+ assert.ok(M.topPlatforms.length>=10);
+ assert.ok(M.lowerPlatforms.length>=7);
+ for(const [x,y,w,h] of [...M.topPlatforms,...M.lowerPlatforms,...M.outerWalls]){
+  assert.ok(x>=0&&y>=0&&w>0&&h>0);
+  assert.ok(x+w<=M.referenceWidth&&y+h<=M.referenceHeight);
+ }
 });
