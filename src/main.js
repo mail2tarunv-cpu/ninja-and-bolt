@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Foundry } from './foundry.js';
+import { Temple } from './temple.js';
 import './style.css';
 
 // Gameplay-only greybox. Every measurement uses game-world pixels.
@@ -345,17 +346,20 @@ const game = new Phaser.Game({
   type:Phaser.AUTO,parent:'game',width:1280,height:720,
   scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
   physics:{default:'arcade',arcade:{gravity:{y:1150},debug:false}},
-  scene:[Workshop,Foundry],render:{pixelArt:false,antialias:true}
+  scene:[Workshop,Foundry,Temple],render:{pixelArt:false,antialias:true}
 });
 
 function switchLevel(key){
   game.scene.stop('Workshop');
   game.scene.stop('Foundry');
+  game.scene.stop('Temple');
   document.querySelector('#levelTitle').textContent =
+    key === 'Temple' ? 'TEMPLE OF BALANCE / LEVEL 03' :
     key === 'Foundry' ? 'THE COUNTERWEIGHT FOUNDRY / LEVEL 02' : 'THE FORGOTTEN WORKSHOP / LEVEL 01';
   document.querySelector('#victory').classList.remove('visible');
   document.querySelector('#level1').setAttribute('aria-pressed', String(key==='Workshop'));
   document.querySelector('#level2').setAttribute('aria-pressed', String(key==='Foundry'));
+  document.querySelector('#level3').setAttribute('aria-pressed', String(key==='Temple'));
   document.querySelector('#victory .victory-card>span').textContent='LEVEL 01 COMPLETE';
   document.querySelector('#victory .victory-card h1').textContent='Built together.';
   document.querySelector('#victory .victory-card p').textContent='One block. Two jobs. Two heroes through the door.';
@@ -364,3 +368,4 @@ function switchLevel(key){
 
 document.querySelector('#level1').addEventListener('click',()=>switchLevel('Workshop'));
 document.querySelector('#level2').addEventListener('click',()=>switchLevel('Foundry'));
+document.querySelector('#level3').addEventListener('click',()=>switchLevel('Temple'));
