@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { GRAVITY, moveWithPlatformCollisions, updateJumpAssist } from "./physics"
 
 const WORLD = { width: 1280, height: 720 }
 const ROBOT_START = { x: 78, y: 586 }
@@ -28,6 +29,9 @@ type Player = {
   grounded: boolean
   climbing: boolean
   touchingClimbWall: boolean
+  jumpHeld: boolean
+  jumpBufferRemaining: number
+  coyoteRemaining: number
   animation: CharacterAnimation
   animationStartedAt: number
   buildAnimationStartedAt: number
@@ -130,6 +134,9 @@ const resetGame = (): Game => ({
     grounded: false,
     climbing: false,
     touchingClimbWall: false,
+    jumpHeld: false,
+    jumpBufferRemaining: 0,
+    coyoteRemaining: 0,
     animation: "idle",
     animationStartedAt: performance.now(),
     buildAnimationStartedAt: 0,
@@ -147,6 +154,9 @@ const resetGame = (): Game => ({
     grounded: false,
     climbing: false,
     touchingClimbWall: false,
+    jumpHeld: false,
+    jumpBufferRemaining: 0,
+    coyoteRemaining: 0,
     animation: "idle",
     animationStartedAt: performance.now(),
     buildAnimationStartedAt: 0,
@@ -615,40 +625,18 @@ function movePlayer(
   if (input.right) player.facing = 1
 
   if (player.climbing) {
+    // Wall climbing is separate from jump buffering; holding UP on a wall
+    // should not queue a surprise jump when the Ninja leaves the wall.
+    player.jumpHeld = input.up
+    player.jumpBufferRemaining = 0
+    player.coyoteRemaining = 0
     player.vy = input.up ? -175 : input.down ? 175 : 0
   } else {
-    if (input.up && player.grounded) {
-      player.vy = -470
-      player.grounded = false
-    }
-    player.vy += 1150 * dt
+    updateJumpAssist(player, input.up, dt)
+    player.vy += GRAVITY * dt
   }
 
-  const colliders = currentColliders(game)
-  const feetBeforeHorizontalMove = player.y + player.h
-  player.x += player.vx * dt
-  for (const solid of colliders) {
-    if (!overlaps(player, solid)) continue
-    // Do not resolve a supporting surface as a side wall when walking across
-    // adjoining platform and lift edges.
-    if (feetBeforeHorizontalMove <= solid.y + 2) continue
-    if (player.vx > 0) player.x = solid.x - player.w
-    else if (player.vx < 0) player.x = solid.x + solid.w
-  }
-
-  player.grounded = false
-  player.y += player.vy * dt
-  for (const solid of colliders) {
-    if (!overlaps(player, solid)) continue
-    if (player.vy > 0) {
-      player.y = solid.y - player.h
-      player.vy = 0
-      player.grounded = true
-    } else if (player.vy < 0) {
-      player.y = solid.y + solid.h
-      player.vy = 0
-    }
-  }
+  moveWithPlatformCollisions(player, currentColliders(game), dt)
 
   player.x = Math.max(24, Math.min(WORLD.width - 24 - player.w, player.x))
   const fellIntoQuicksand =

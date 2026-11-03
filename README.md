@@ -21,6 +21,12 @@ Open the URL printed by Vite. Production: `npm run build`, preview: `npm run pre
 
 Both players must reach their respective exit pods to win. The shared score rewards mission completion (200), six collectible gems (100 each), and speed (up to 200). The on-screen clock starts with the first movement and stops upon completion. Best score is stored in the browser.
 
+## Platforming feel
+
+The jump has increased vertical clearance so both characters can comfortably reach the 88–90px ledges. Near platform tops, corner collision handling no longer snaps a rising character backward. There is also a brief 110ms coyote window after walking off a ledge and a 130ms jump buffer before landing. Holding jump does not repeatedly trigger another jump on landing.
+
+Run the platform physics regression tests with `npm test`. They cover approaches from both directions for each character, ledge landings, jump buffering, platform undersides, and moving lifts.
+
 ## Character assets
 
 The original Figma sprite atlases are committed under `public/sprites/`. Each image was copied byte-for-byte from Figma Make: 17 frames per character, 180×220 pixels per frame. `src/App.tsx` uses them for idle, run, jump, climb (Ninja), and build (Robot) animations.
