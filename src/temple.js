@@ -352,11 +352,13 @@ export class Temple extends Phaser.Scene {
         const feet=hero.body.bottom;
         if(Math.abs(dx)<board.width/2-18&&hero.body.velocity.y>=-25
           &&feet>=surface-15&&feet<=surface+31){
-          // Reset snaps the body to the rotated plank; restore horizontal
-          // speed so a grounded player can still run across it smoothly.
-          const vx=hero.body.velocity.x;
-          hero.y+=(surface-feet);hero.body.reset(hero.x,hero.y);
-          hero.setVelocity(vx,0);
+          // Correct only vertical placement. Calling body.reset() here used
+          // to erase Arcade Physics integration each frame, trapping Bolt.
+          const correction=surface-feet;
+          hero.y+=correction;
+          hero.body.position.y+=correction;
+          hero.body.prev.y+=correction;
+          hero.setVelocityY(0);
           memory.onBoard=true;
           torque+=weight*dx;
         }
