@@ -50,9 +50,15 @@ async function main(){
  const oldBoltX=await page.evaluate(()=>window.__ninjaBoltGame.scene.getScene('Temple').bolt.x);
  await page.keyboard.down('ArrowRight');
  await page.waitForTimeout(850);
+ const during=await page.evaluate(()=>{
+   const sc=window.__ninjaBoltGame.scene.getScene('Temple');
+   const b=sc.bolt;
+   return {x:b.x,y:b.y,vx:b.body.velocity.x,vy:b.body.velocity.y,
+      right:sc.keys.br.isDown,locked:b.body.blocked,board:sc.jumpRecords.bolt.onBoard};
+ });
  await page.keyboard.up('ArrowRight');
  const newBoltX=await page.evaluate(()=>window.__ninjaBoltGame.scene.getScene('Temple').bolt.x);
- console.log('Bolt moved from',oldBoltX,'to',newBoltX);
+ console.log('Bolt moved from',oldBoltX,'to',newBoltX,JSON.stringify(during));
  if(!(newBoltX>oldBoltX+5))throw Error('Bolt input or physics update not working');
  const pixels=await page.evaluate(()=>{
    const canvas=document.querySelector('#game canvas');
