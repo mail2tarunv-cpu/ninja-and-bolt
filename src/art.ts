@@ -41,88 +41,135 @@ function piece(
 }
 
 export function drawStorybookBackground(ctx: CanvasRenderingContext2D, art: GameArt, now: number) {
-  if (!ready(art.sky)) {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 720)
-    gradient.addColorStop(0, '#8e91cd')
-    gradient.addColorStop(0.6, '#b4a5df')
-    gradient.addColorStop(1, '#524871')
-    ctx.fillStyle = gradient
+  if (ready(art.sky)) ctx.drawImage(art.sky, 0, 0, 1280, 720)
+  else {
+    const bg = ctx.createLinearGradient(0, 0, 0, 720)
+    bg.addColorStop(0, '#8580b8')
+    bg.addColorStop(1, '#545072')
+    ctx.fillStyle = bg
     ctx.fillRect(0, 0, 1280, 720)
-  } else {
-    ctx.drawImage(art.sky, 0, 0, 1280, 720)
   }
-
   if (ready(art.ruins)) {
     ctx.save()
-    // A fixed-screen composition: a few pixels of subtle atmospheric drift,
-    // not a scrolling background that would misalign with static game geometry.
-    const offset = Math.sin(now * 0.00008) * 5
-    ctx.globalAlpha = 0.29
-    ctx.drawImage(art.ruins, -8 + offset, -6, 1296, 734)
+    ctx.globalAlpha = .14
+    const offset = Math.sin(now * .000065) * 3
+    ctx.drawImage(art.ruins, -4 + offset, -5, 1288, 733)
     ctx.restore()
   }
-  ctx.fillStyle = 'rgba(35, 22, 65, .14)'
+  const depth = ctx.createLinearGradient(0, 0, 0, 720)
+  depth.addColorStop(0, 'rgba(32,27,59,.18)')
+  depth.addColorStop(.36, 'rgba(39,32,66,.21)')
+  depth.addColorStop(.72, 'rgba(32,30,58,.33)')
+  depth.addColorStop(1, 'rgba(29,26,51,.48)')
+  ctx.fillStyle = depth
   ctx.fillRect(0, 0, 1280, 720)
-}
-
-function flatStone(ctx: CanvasRenderingContext2D, rect: ArtRect) {
-  const grad = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h)
-  grad.addColorStop(0, '#8b7996')
-  grad.addColorStop(.18, '#594d6b')
-  grad.addColorStop(1, '#27263d')
-  ctx.fillStyle = grad
-  ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
-}
-
-/**
- * Paint image texture inside exactly the physics rectangle, then give the
- * surface a narrow grass ledge that overlaps the top edge cosmetically.
- * This avoids turning the painting's irregular bounding box into collision.
- */
-export function drawStonePlatform(ctx: CanvasRenderingContext2D, rect: ArtRect, art: GameArt) {
-  const tiles = art.tiles
-  flatStone(ctx, rect)
-  if (!ready(tiles)) {
-    ctx.fillStyle = '#c6a96b'
-    ctx.fillRect(rect.x, rect.y, rect.w, Math.min(4, rect.h))
-    return
+  for (const [start, end, left] of [[0,270,true],[1000,1280,false]] as const) {
+    const shade = ctx.createLinearGradient(start, 0, end, 0)
+    shade.addColorStop(0, left ? 'rgba(23,20,39,.22)' : 'rgba(23,20,39,0)')
+    shade.addColorStop(1, left ? 'rgba(23,20,39,0)' : 'rgba(23,20,39,.20)')
+    ctx.fillStyle = shade
+    ctx.fillRect(start, 0, end-start, 720)
   }
+}
 
+function seeded(x: number, y: number) {
+  const v = Math.sin(x * 13.137 + y * 91.713) * 43758.5453
+  return v - Math.floor(v)
+}
+
+export function drawStonePlatform(ctx: CanvasRenderingContext2D, rect: ArtRect, art: GameArt) {
+  const verticalBoundary = rect.w < 42 && rect.h > 200
+  const topY = rect.y
   ctx.save()
   ctx.beginPath()
-  ctx.rect(rect.x, rect.y, rect.w, rect.h)
+  if (rect.h <= 32 && rect.w > 70) {
+    ctx.moveTo(rect.x, rect.y)
+    ctx.lineTo(rect.x + rect.w, rect.y)
+    ctx.lineTo(rect.x + rect.w, rect.y + rect.h - 3)
+    for (let x=rect.x+rect.w; x>=rect.x; x-=23) {
+      ctx.lineTo(Math.max(rect.x,x-23), rect.y+rect.h-seeded(Math.floor(x),Math.floor(rect.y))*6)
+    }
+    ctx.closePath()
+  } else ctx.rect(rect.x,rect.y,rect.w,rect.h)
   ctx.clip()
-
-  // Repeated masonry inside the solid area, with no spill into hazards.
-  const size = 64
-  for (let y = rect.y; y < rect.y + rect.h; y += size) {
-    for (let x = rect.x; x < rect.x + rect.w; x += size) {
-      piece(ctx, tiles, [201, 302, 114, 79], { x, y, w: size, h: size })
+  const base=ctx.createLinearGradient(rect.x,rect.y,rect.x,rect.y+Math.max(30,rect.h))
+  base.addColorStop(0, verticalBoundary ? '#51405b' : '#63506d')
+  base.addColorStop(.20,'#40334e')
+  base.addColorStop(1,'#211c31')
+  ctx.fillStyle=base
+  ctx.fillRect(rect.x,rect.y,rect.w,rect.h)
+  const course=verticalBoundary ? 26 : 22
+  const brickWidth=verticalBoundary ? 35 : 51
+  for(let row=0,y=rect.y+3;y<rect.y+rect.h;row++,y+=course){
+    const offset=(row%2)*brickWidth/2
+    for(let x=rect.x-offset;x<rect.x+rect.w;x+=brickWidth){
+      const variation=seeded(Math.floor(x),Math.floor(y))
+      ctx.fillStyle=variation<.32 ? '#5a4963' : variation<.7 ? '#4b3c58' : '#3f354d'
+      ctx.fillRect(x+1.5,y+1.5,brickWidth-4,course-4)
+      ctx.fillStyle='rgba(224,187,184,.12)'
+      ctx.fillRect(x+3,y+2,brickWidth-7,1.2)
+      if(variation>.92){
+        ctx.strokeStyle='rgba(33,25,46,.55)'
+        ctx.lineWidth=1
+        ctx.beginPath()
+        ctx.moveTo(x+brickWidth*.58,y+3)
+        ctx.lineTo(x+brickWidth*.5,y+course*.5)
+        ctx.lineTo(x+brickWidth*.67,y+course-3)
+        ctx.stroke()
+      }
     }
   }
-  ctx.fillStyle = 'rgba(21, 17, 41, 0.12)'
-  ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
+  const shade=ctx.createLinearGradient(0,rect.y,0,rect.y+rect.h)
+  shade.addColorStop(0,'rgba(24,19,36,0)')
+  shade.addColorStop(1,'rgba(13,11,23,.38)')
+  ctx.fillStyle=shade
+  ctx.fillRect(rect.x,rect.y,rect.w,rect.h)
   ctx.restore()
-
-  // No thick grassy top on vertical wall colliders or level borders.
-  if (rect.w < 42 || rect.h > 300) return
-
-  ctx.save()
-  // Stretch a single curated moss-covered cap across the platform instead
-  // of tiling individual flowers every ~70px. No repeated hard seams.
-  const topSource: [number, number, number, number] =
-    rect.w < 180 ? [173, 16, 166, 120] : [730, 27, 477, 104]
-  const sections = rect.w > 400 ? Math.ceil(rect.w / 345) : 1
-  for (let i = 0; i < sections; i++) {
-    const segmentW = rect.w / sections
-    piece(ctx, tiles, topSource, {
-      x: rect.x + segmentW * i, y: rect.y - 15,
-      w: segmentW + (i < sections - 1 ? 1 : 0), h: 37,
-    })
+  if(verticalBoundary){
+    ctx.save()
+    const edge=rect.x<200 ? rect.x+rect.w-4 : rect.x+2
+    ctx.strokeStyle='#ab8c85'
+    ctx.globalAlpha=.55
+    ctx.lineWidth=2
+    ctx.beginPath();ctx.moveTo(edge,rect.y);ctx.lineTo(edge,rect.y+rect.h);ctx.stroke()
+    ctx.restore()
+    return
   }
-  // Highlights clarify what can be stood on, even when the painting is busy.
-  ctx.fillStyle = 'rgba(255, 222, 129, .36)'
-  ctx.fillRect(rect.x + 2, rect.y - 2, Math.max(0, rect.w - 4), 2)
+  if(rect.h>200)return
+  ctx.save()
+  ctx.fillStyle='#241c32';ctx.fillRect(rect.x,topY,rect.w,5)
+  ctx.fillStyle='#988768';ctx.fillRect(rect.x,topY-2.5,rect.w,3)
+  ctx.fillStyle='#d3bd78';ctx.fillRect(rect.x+2,topY-4.5,Math.max(0,rect.w-4),2)
+  ctx.fillStyle='#69744d';ctx.fillRect(rect.x+2,topY-6,Math.max(0,rect.w-4),2)
+  const count=Math.floor(rect.w/35)
+  for(let i=0;i<count;i++){
+    const x=rect.x+12+i*35+seeded(i,topY)*17
+    if(x>rect.x+rect.w-7)continue
+    const r=seeded(x,topY)
+    ctx.strokeStyle=r>.5 ? '#b3ab67' : '#7e8d52'
+    ctx.lineWidth=1.5
+    ctx.beginPath()
+    ctx.moveTo(x,topY-4);ctx.lineTo(x-3,topY-6-4*r)
+    ctx.moveTo(x,topY-4);ctx.lineTo(x+3,topY-6-3*(1-r))
+    ctx.stroke()
+    if(r>.89&&rect.w>140){
+      ctx.fillStyle='#f7e7c6';ctx.beginPath();ctx.arc(x+4,topY-10,2,0,Math.PI*2);ctx.fill()
+    }
+  }
+  if(rect.w>=100&&ready(art.tiles)){
+    const patches=rect.w>=600 ? 4 : rect.w>=250 ? 2 : 1
+    for(let i=0;i<patches;i++){
+      const slot=(i+.75)/(patches+.5)
+      const xpos=rect.x+slot*rect.w+(seeded(i*7,topY)-.5)*37
+      const w=26+Math.floor(seeded(xpos,topY)*18)
+      piece(ctx,art.tiles,[641,566,79,62],{
+        x:Math.min(rect.x+rect.w-w,Math.max(rect.x+3,xpos-w/2)),
+        y:topY-17,w,h:18
+      })
+    }
+  }
+  ctx.fillStyle='rgba(17,14,31,.62)'
+  ctx.fillRect(rect.x,topY+Math.min(14,rect.h-4),rect.w,Math.min(4,rect.h-2))
   ctx.restore()
 }
 
@@ -264,38 +311,53 @@ export function drawStorybookExit(
 }
 
 export function drawStorybookDecor(ctx: CanvasRenderingContext2D, art: GameArt, now: number) {
-  const objects = art.objects
-  if (!ready(objects)) return
   ctx.save()
-  // Small lighting and ruins ornament never intersect the player collision map.
-  piece(ctx, objects, [613, 49, 151, 294], { x: 58, y: 372, w: 45, h: 88 })
-  piece(ctx, objects, [613, 49, 151, 294], { x: 440, y: 383, w: 40, h: 76 })
-  piece(ctx, objects, [613, 49, 151, 294], { x: 672, y: 213, w: 39, h: 76 })
-  piece(ctx, objects, [613, 49, 151, 294], { x: 1095, y: 245, w: 41, h: 89 })
-  // Mossy archwork / wooden supports behind the platforms, never collidable.
-  piece(ctx, art.tiles, [177, 404, 203, 135], { x: 38, y: 478, w: 156, h: 128 })
-  piece(ctx, art.tiles, [412, 406, 276, 140], { x: 785, y: 478, w: 229, h: 130 })
-  piece(ctx, art.tiles, [18, 564, 139, 105], { x: 217, y: 479, w: 70, h: 77 })
+  ctx.globalAlpha=.78
+  piece(ctx,art.tiles,[422,409,275,140],{x:295,y:266,w:318,h:214})
+  piece(ctx,art.tiles,[1045,409,252,142],{x:920,y:266,w:284,h:214})
+  ctx.globalAlpha=.66
+  piece(ctx,art.tiles,[1045,409,252,142],{x:775,y:97,w:275,h:209})
+  ctx.globalAlpha=.81
+  piece(ctx,art.tiles,[14,563,140,114],{x:157,y:398,w:81,h:80})
+  piece(ctx,art.tiles,[186,409,193,137],{x:106,y:442,w:170,h:208})
+  piece(ctx,art.tiles,[1045,409,252,142],{x:816,y:442,w:280,h:208})
   ctx.restore()
-
-  // Sparse light motes; deterministic and inexpensive on Canvas.
-  ctx.save()
-  for (let i = 0; i < 19; i++) {
-    const x = (i * 127 + 39) % 1215 + 30
-    const y = (i * 83 + 57) % 570 + 26
-    const alpha = .12 + .17 * (Math.sin(now * .0011 + i * 1.9) + 1) / 2
-    ctx.fillStyle = `rgba(255, 244, 197, ${alpha.toFixed(3)})`
-    ctx.beginPath()
-    ctx.arc(x, y, i % 5 === 0 ? 2.1 : 1.1, 0, Math.PI * 2)
-    ctx.fill()
+  const lanterns: Array<[number,number,number,number]> = [
+    [92,559,40,91], [510,397,36,81], [982,221,36,79]
+  ]
+  for(const [x,y,w,h] of lanterns){
+    ctx.save();ctx.globalAlpha=.9
+    piece(ctx,art.objects,[613,49,151,294],{x,y,w,h})
+    ctx.globalCompositeOperation='screen'
+    const halo=ctx.createRadialGradient(x+w*.5,y+h*.19,2,x+w*.5,y+h*.19,48)
+    halo.addColorStop(0,'rgba(255,216,150,.15)')
+    halo.addColorStop(1,'rgba(255,216,150,0)')
+    ctx.fillStyle=halo;ctx.beginPath()
+    ctx.arc(x+w*.5,y+h*.19,48,0,Math.PI*2);ctx.fill()
+    ctx.restore()
   }
-  ctx.restore()
+  for(let i=0;i<11;i++){
+    const x=(i*193+83)%1170+45
+    const y=(i*113+97)%460+60
+    const alpha=.09+.12*(1+Math.sin(now*.001+i))/2
+    ctx.fillStyle='rgba(255,241,198,'+alpha.toFixed(3)+')'
+    ctx.beginPath();ctx.arc(x,y,1.6,0,Math.PI*2);ctx.fill()
+  }
 }
 
 export function drawStorybookForeground(ctx: CanvasRenderingContext2D, art: GameArt) {
-  if (!ready(art.foliage)) return
+  if(!ready(art.foliage))return
   ctx.save()
-  ctx.globalAlpha = .49
-  ctx.drawImage(art.foliage, 0, 0, 1280, 720)
+  ctx.globalAlpha=.26
+  ctx.beginPath()
+  ctx.moveTo(0,0);ctx.lineTo(420,0);ctx.quadraticCurveTo(285,90,205,235)
+  ctx.lineTo(0,310);ctx.closePath();ctx.clip()
+  ctx.drawImage(art.foliage,0,0,1280,720)
+  ctx.restore()
+  ctx.save()
+  ctx.globalAlpha=.24
+  ctx.beginPath()
+  ctx.moveTo(1100,720);ctx.lineTo(1280,520);ctx.lineTo(1280,720);ctx.closePath();ctx.clip()
+  ctx.drawImage(art.foliage,0,0,1280,720)
   ctx.restore()
 }

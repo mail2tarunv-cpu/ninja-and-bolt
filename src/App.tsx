@@ -356,8 +356,9 @@ function drawCharacterSprite(
   const definition = CHARACTER_ANIMATIONS[player.role][animation]
   if (!definition) return
   const frame = getAnimationFrame(player, definition, now)
-  const drawWidth = player.role === "robot" ? 66 : 62
-  const drawHeight = 78
+  // Enlarge the animated silhouettes without changing player colliders.
+  const drawWidth = player.role === "robot" ? 77 : 73
+  const drawHeight = 88
   const baselineOffset =
     drawHeight * (SPRITE_CELL.baseline / SPRITE_CELL.height)
 
