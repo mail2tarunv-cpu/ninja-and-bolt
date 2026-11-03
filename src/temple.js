@@ -206,7 +206,7 @@ export class Temple extends Phaser.Scene {
     ];
     this.leftHanger=this.physics.add.image(px(leftPlatform.x),px(leftPlatform.y),'nf-board')
       .setDisplaySize(80,16).setAllowGravity(false).setImmovable(true).setPushable(false).setDepth(11);
-    this.leftHanger.body.setSize(75,14);this.leftHanger.body.updateFromGameObject();
+    this.leftHanger.body.setSize(75,14);
     this.rightHanger=this.add.rectangle(px(rightWeight.x),px(rightWeight.y),79,15,0x9c9981)
       .setStrokeStyle(2,0xd8caa2).setDepth(11);
     this.pulleyState=0;
@@ -252,10 +252,10 @@ export class Temple extends Phaser.Scene {
       this.physics.add.collider(hero,this.leftHanger);
     }
     this.ninja.setVelocity(0,0);this.bolt.setVelocity(0,0);
-    this.add.text(this.ninja.x-33,this.ninja.y-64,'NINJA',{
+    this.ninjaLabel=this.add.text(this.ninja.x-33,this.ninja.y-64,'NINJA',{
       fontSize:'13px',color:'#ffaea0',fontFamily:'Arial',fontStyle:'bold'
     }).setDepth(24);
-    this.add.text(this.bolt.x-24,this.bolt.y-64,'BOLT',{
+    this.boltLabel=this.add.text(this.bolt.x-24,this.bolt.y-64,'BOLT',{
       fontSize:'13px',color:'#a1eaff',fontFamily:'Arial',fontStyle:'bold'
     }).setDepth(24);
     this.interactionLabel=this.add.text(0,0,'',{fontSize:'13px',fontFamily:'Arial',
@@ -303,7 +303,7 @@ export class Temple extends Phaser.Scene {
           this.toast('Collect your remaining upper-room '+gemKind+' gems first.',0);return;
         }
         this.states[kind+'Floor']=1;
-        if(kind==='bolt')hero.setPosition(px(91),px(393));
+        if(kind==='bolt')hero.setPosition(px(43),px(395));
         else hero.setPosition(px(477),px(391));
         hero.setVelocity(0,0);
         this.syncHUD();
@@ -443,6 +443,8 @@ export class Temple extends Phaser.Scene {
     if(Phaser.Input.Keyboard.JustDown(this.keys.ni))this.interact(this.ninja,'ninja');
     if(Phaser.Input.Keyboard.JustDown(this.keys.bi))this.interact(this.bolt,'bolt');
     this.updatePulley();this.collectGems();this.showPrompts();this.checkExits();
+    this.ninjaLabel.setPosition(this.ninja.x-30,this.ninja.y-65);
+    this.boltLabel.setPosition(this.bolt.x-25,this.bolt.y-64);
     const elapsed=Math.floor((this.time.now-this.startAt)/1000);
     this.timer.setText(String(Math.floor(elapsed/60)).padStart(2,'0')+':'+
       String(elapsed%60).padStart(2,'0'));
