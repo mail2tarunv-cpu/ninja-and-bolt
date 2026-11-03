@@ -208,7 +208,8 @@ export class Temple extends Phaser.Scene {
       this.add.image(px(rightWheel.x),px(rightWheel.y),'nf-gear').setDepth(10)
     ];
     this.leftHanger=this.physics.add.image(px(leftPlatform.x),px(leftPlatform.y),'nf-board')
-      .setDisplaySize(80,16).setAllowGravity(false).setImmovable(true).setPushable(false).setDepth(11);
+      .setDisplaySize(80,16).setImmovable(true).setPushable(false).setDepth(11);
+    this.leftHanger.body.allowGravity = false;
     this.leftHanger.body.setSize(75,14);
     this.rightHanger=this.add.rectangle(px(rightWeight.x),px(rightWeight.y),79,15,0x9c9981)
       .setStrokeStyle(2,0xd8caa2).setDepth(11);
