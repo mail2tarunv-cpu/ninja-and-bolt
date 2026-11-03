@@ -3,7 +3,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { chromium } from 'playwright';
 
 const port=4174, url='http://127.0.0.1:'+port;
-const server=spawn('npx',['vite','--host','127.0.0.1','--port',String(port),'--strictPort'],{
+const server=spawn('./node_modules/.bin/vite',['--host','127.0.0.1','--port',String(port),'--strictPort'],{
  stdio:['ignore','pipe','pipe'],env:{...process.env,CI:'1'}
 });
 server.stderr.on('data',c=>process.stderr.write('[vite] '+c));
@@ -43,4 +43,4 @@ async function main(){
  console.log('PASS: scene rendering, both players, and keyboard movement.');
 }
 try{await main()}catch(error){console.error(error.stack);process.exitCode=1}
-finally{await browser?.close();server.kill('SIGTERM')}
+finally{await browser?.close();server.kill('SIGTERM');process.exit(process.exitCode||0)}
