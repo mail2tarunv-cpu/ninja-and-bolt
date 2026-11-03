@@ -58,3 +58,30 @@ The pulley and seesaw use intentionally **kinematic / rule-based physics**. They
 ## Deployment
 
 Vercel: build command `npm run build`, output directory `dist`. GitHub pushes to the configured production branch automatically trigger Vercel builds.
+
+
+## Level 03 — Temple of Balance
+
+A longer, original **Forest Temple–inspired** map using two seesaws, a pulley, vertically separated routes, permanent gates, and a two-player exit. It is not a pixel-for-pixel recreation of another game's level.
+
+### Intended solution and mechanics
+
+1. **Balance A:** Bolt stands on the left gold pad, pulling down that side of the first seesaw and raising its right end. Ninja jumps to the elevated platform and activates Switch A.
+2. **Machine room:** The first gate opens. Bolt collects the separate wheel and rope parts, carries each to the marked assembly bench, and installs them.
+3. **Counterweight:** Ninja boards the lower lift. Bolt tries a light or heavy counterweight in the basket. Light weight moves the lift only partway; the heavy weight raises it sufficiently to reach the upper walkway.
+4. **Upper switch:** Ninja rides the lift, jumps across to Switch B, and opens the next gate.
+5. **Balance B:** Bolt collects a loose plank beyond the gate and installs it on the second pivot. Bolt holds down the left side while Ninja jumps from the raised right end to Switch C.
+6. **Exit:** Switch C opens the last gate. Both heroes regroup at the exit door.
+
+### Development / reliability
+
+- Source: `src/temple.js`
+- Level coordinates: `src/temple-layout.js`
+- Tests: `tests/temple-layout.test.js`; executed before the Vite production build
+- All temporary silhouettes, mechanics, and surroundings are generated in code. Final sprites and environment artwork are not added.
+- Seesaws use rotating artwork and one-way collision segments; the pulley is a controlled weight-based lift. These are game-friendly approximations, **not** a physically accurate rope and rigid-body simulator.
+- Static geometry tests check intended jumping reach and level ordering. They do **not** substitute for testing with two humans in a running browser.
+
+### How to test
+
+Use the **03 Temple** button in the top level selector. Controls are unchanged. Press **H** if unsure of a puzzle step, **R** to restart the selected level. Suggested QA cases: reach the first upper ledge with Bolt on the left weight pad; try the light weight and heavy weight; detach and reattach the basket weight; install the second plank; deliberately separate the two heroes to test the shared camera; finish with both characters.
