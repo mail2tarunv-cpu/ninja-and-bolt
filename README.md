@@ -1,87 +1,53 @@
-# Ninja & Bolt — Greybox co-op puzzle platformer
+# Ninja & Bolt — Temple of Balance (Level 03)
 
-Two-player browser game made with **Phaser 3 + Vite**, deployed from GitHub to Vercel. Choose a level from the header. Final character sprites, textures, and sound are intentionally not included.
+**One level. Two playable characters.** This repository now launches the Temple of Balance directly. The earlier Workshop and Foundry levels and their selector were removed so all iteration is focused on the Temple.
 
-## Run locally
+- **Live game:** https://ninja-and-bolt.vercel.app
+- **Engine:** Phaser 3 + Vite
+- **Design state:** Greybox / mechanics prototype. No final artwork or audio.
+
+## Local setup
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Controls
+## Two-player controls
 
 | Action | Ninja | Bolt |
 | --- | --- | --- |
-| Move | A / D | Left / Right arrows |
-| Jump | W | Up arrow |
+| Walk | A / D | ← / → |
+| Jump | W | ↑ |
 | Interact | F | Enter |
 
-**H** opens the optional hint. **R** restarts the currently selected level. Two people share one keyboard.
+Press **H** to see an optional hint and **R** to restart. Two people use one keyboard.
 
-## Level 01 — The Forgotten Workshop
+## Single active level: Temple of Balance
 
-Bolt repositions one heavy stone block as a step so Ninja can reach a high lever. Ninja opens a gate. Bolt reuses the same block to hold a pressure plate, unlock a bridge beam, and build a route to the shared exit.
+Both characters begin on the left. The objective is to cooperate through three chambers and reach the same exit.
 
-## Level 02 — The Counterweight Foundry (new)
+1. **First seesaw:** Bolt holds the left counterweight pad so the right side tilts upward. Ninja jumps onto the high ledge and pulls Switch A.
+2. **Pulley chamber:** Bolt installs a wheel and spool of rope at the assembly bench. Ninja stands on the lift while Bolt tries different counterweights in the basket.
+3. **Upper route:** The heavy weight lifts Ninja high enough to reach Switch B, opening the next gate.
+4. **Second seesaw:** Bolt collects the loose plank and installs it at the next pivot. Bolt weighs the left end down as Ninja jumps from the raised right end to Switch C.
+5. **Shared finish:** The last gate opens; both Ninja and Bolt must arrive at the exit.
 
-A separate mechanics-focused level introducing two types of construction:
+### Code structure
 
-**A. Assemble and use a seesaw / ramp**
+- `src/main.js` — launches only the Temple Phaser scene
+- `src/temple.js` — characters, collision, mechanisms, interactions, camera and game flow
+- `src/temple-layout.js` — geometry constants for the active map
+- `tests/temple-layout.test.js` — automated layout reachability and ordering checks
+- `src/style.css` / `index.html` — HUD and controls
 
-1. Bolt lifts the long loose plank at the start and carries it to the marked pivot.
-2. Press Enter near the pivot to attach the plank and create the seesaw.
-3. Bolt stands on the **left side** of the board; the heavier character tilts it, raising the **right side**.
-4. Ninja uses the raised right side to jump to the otherwise unreachable upper ledge and pull the switch. This opens the storage gate.
+### Validation
 
-**B. Assemble a pulley and balance the counterweights**
+```bash
+npm test
+npm run build
+```
 
-5. Bolt picks up the loose **wheel**, carries it to the gold assembly bench, and installs it using Enter.
-6. Bolt repeats this for the loose **rope spool**. The assembled overhead pulley now connects the lower lift to the hanging basket.
-7. Ninja stands on the lower lift. Bolt chooses a **light** or **heavy** counterweight, picks it up, and attaches it to the basket using Enter.
-8. The basket moves down and the lift rises. The light weight raises it partway; the heavy weight lifts it high enough to reach the upper walkway. You can remove a weight from the basket and try a different one.
-9. Ninja reaches the upper switch to open the final gate. Both characters meet at the shared exit.
+These tests check geometry assumptions, not complete runtime playability. The seesaws and pulley use deterministic, game-oriented approximations rather than full rigid-body physics. Two-player browser playtesting is still required to validate interaction reach, movement, collisions, and potential soft locks before visual polishing.
 
-### Current implementation
-
-- Weight-responsive, visually tilting seesaw with a series of moving, one-way collision segments (a controlled approximation, not full rigid-body simulation)
-- Player-carried plank and snap-to-pivot assembly
-- Wheel and rope components that must each be installed
-- Counterweight lift with weight-dependent heights and animated rope/basket
-- Two separate weight objects, attachment/removal, interaction prompts, hints and shared exit
-- Level selector so Level 01 is preserved
-
-### Known prototype limits
-
-The pulley and seesaw use intentionally **kinematic / rule-based physics**. They visually and mechanically respond to player input but do not yet model actual rope tension or unconstrained rigid-body dynamics. Fine movement, collision tolerances and the moving-platform ride must be verified in a live browser with two players. The Vercel build being successful does not establish that the puzzles are perfectly playable.
-
-## Deployment
-
-Vercel: build command `npm run build`, output directory `dist`. GitHub pushes to the configured production branch automatically trigger Vercel builds.
-
-
-## Level 03 — Temple of Balance
-
-A longer, original **Forest Temple–inspired** map using two seesaws, a pulley, vertically separated routes, permanent gates, and a two-player exit. It is not a pixel-for-pixel recreation of another game's level.
-
-### Intended solution and mechanics
-
-1. **Balance A:** Bolt stands on the left gold pad, pulling down that side of the first seesaw and raising its right end. Ninja jumps to the elevated platform and activates Switch A.
-2. **Machine room:** The first gate opens. Bolt collects the separate wheel and rope parts, carries each to the marked assembly bench, and installs them.
-3. **Counterweight:** Ninja boards the lower lift. Bolt tries a light or heavy counterweight in the basket. Light weight moves the lift only partway; the heavy weight raises it sufficiently to reach the upper walkway.
-4. **Upper switch:** Ninja rides the lift, jumps across to Switch B, and opens the next gate.
-5. **Balance B:** Bolt collects a loose plank beyond the gate and installs it on the second pivot. Bolt holds down the left side while Ninja jumps from the raised right end to Switch C.
-6. **Exit:** Switch C opens the last gate. Both heroes regroup at the exit door.
-
-### Development / reliability
-
-- Source: `src/temple.js`
-- Level coordinates: `src/temple-layout.js`
-- Tests: `tests/temple-layout.test.js`; executed before the Vite production build
-- All temporary silhouettes, mechanics, and surroundings are generated in code. Final sprites and environment artwork are not added.
-- Seesaws use rotating artwork and one-way collision segments; the pulley is a controlled weight-based lift. These are game-friendly approximations, **not** a physically accurate rope and rigid-body simulator.
-- Static geometry tests check intended jumping reach and level ordering. They do **not** substitute for testing with two humans in a running browser.
-
-### How to test
-
-Use the **03 Temple** button in the top level selector. Controls are unchanged. Press **H** if unsure of a puzzle step, **R** to restart the selected level. Suggested QA cases: reach the first upper ledge with Bolt on the left weight pad; try the light weight and heavy weight; detach and reattach the basket weight; install the second plank; deliberately separate the two heroes to test the shared camera; finish with both characters.
+The former levels remain recoverable through the repository's Git history, but are not included in the active game.
