@@ -351,8 +351,11 @@ export class Temple extends Phaser.Scene {
         const feet=hero.body.bottom;
         if(Math.abs(dx)<board.width/2-18&&hero.body.velocity.y>=-25
           &&feet>=surface-15&&feet<=surface+31){
+          // Reset snaps the body to the rotated plank; restore horizontal
+          // speed so a grounded player can still run across it smoothly.
+          const vx=hero.body.velocity.x;
           hero.y+=(surface-feet);hero.body.reset(hero.x,hero.y);
-          hero.setVelocityY(0);
+          hero.setVelocity(vx,0);
           memory.onBoard=true;
           torque+=weight*dx;
         }
