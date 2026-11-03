@@ -37,9 +37,15 @@ async function main(){
  await page.keyboard.down('d');
  await page.waitForTimeout(400);
  await page.keyboard.up('d');
- const newX=await page.evaluate(()=>window.__ninjaBoltGame.scene.getScene('Temple').ninja.x);
- console.log('Ninja moved from',oldX,'to',newX);
- if(!(newX>oldX+5))throw Error('Input or physics update not working');
+ const diagnostics=await page.evaluate(()=>{
+  const scene=window.__ninjaBoltGame.scene.getScene('Temple');
+  const p=scene.ninja;
+  return {x:p.x,y:p.y,vx:p.body.velocity.x,vy:p.body.velocity.y,blocked:p.body.blocked,
+    keyDown:scene.keys.nr.isDown,paused:scene.physics.world.isPaused, time:scene.time.now,
+    fps:window.__ninjaBoltGame.loop.actualFps};
+ });
+ console.log('Ninja from',oldX,'diagnostics:',JSON.stringify(diagnostics));
+ if(!(diagnostics.x>oldX+5))throw Error('Input or physics update not working');
  console.log('PASS: scene rendering, both players, and keyboard movement.');
 }
 try{await main()}catch(error){console.error(error.stack);process.exitCode=1}
