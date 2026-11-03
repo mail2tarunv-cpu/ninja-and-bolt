@@ -4,7 +4,7 @@ import './style.css';
 
 // One playable scene while we refine Ninja, Bolt and Temple of Balance.
 const game = new Phaser.Game({
-  type: Phaser.AUTO,
+  type: Phaser.CANVAS,
   parent: 'game',
   width: 1162,
   height: 874,
