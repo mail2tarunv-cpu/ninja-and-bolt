@@ -34,8 +34,9 @@ async function main(){
  if(errors.length)throw Error('Browser errors: '+errors.join('\n\n'));
  if(!result.hasCanvas||!result.active||!result.hasState||!result.n||!result.b)throw Error('Game scene did not initialize');
  const oldX=await page.evaluate(()=>window.__ninjaBoltGame.scene.getScene('Temple').ninja.x);
+ await page.locator('#game canvas').click({position:{x:300,y:220}});
  await page.keyboard.down('d');
- await page.waitForTimeout(400);
+ await page.waitForTimeout(1400);
  await page.keyboard.up('d');
  const diagnostics=await page.evaluate(()=>{
   const scene=window.__ninjaBoltGame.scene.getScene('Temple');
