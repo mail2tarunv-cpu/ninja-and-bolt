@@ -54,10 +54,10 @@ test('gems replicate reference positions and colors',()=>{
 });
 
 test('jump range is sufficient for the stacked floor obstacles',()=>{
- const gravity=1350, jumpVelocity=755;
+ const gravity=1500, jumpVelocity=720;
  const rise=jumpVelocity**2/(2*gravity)/M.scale;
- assert.ok(rise>90 && rise<120, 'jump should be approximately 100 reference pixels high');
- assert.ok(Math.abs(M.lowerFloor-327)<rise);
+ assert.ok(rise>80 && rise<95, 'jump should be approximately 86 reference pixels high');
+ assert.ok(Math.abs(M.lowerFloor-327)>rise, 'red exit shelf must require use of the seesaw');
 });
 
 test('reference-mapped ledges and walls stay within viewport',()=>{
