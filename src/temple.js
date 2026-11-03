@@ -174,11 +174,14 @@ export class Temple extends Phaser.Scene {
     // Reference maze edges and walkable ledges.
     for(const q of M.topPlatforms)this.addCollisionRect(...q);
     for(const q of M.lowerPlatforms)this.addCollisionRect(...q);
-    // Small outer supports are decorative to avoid accidental invisible walls.
-    for(const [x,y,w,h] of M.outerWalls){
-      this.add.rectangle(px(x+w/2),px(y+h/2),px(w),px(h),0x87805a,.55)
-        .setStrokeStyle(1,0xab9b68,.5).setDepth(5);
-    }
+    // Stone columns and maze borders are solid, matching the reference image.
+    // Background bricks, ivy and thin trim remain decorative only.
+    for(const [x,y,w,h] of M.outerWalls)this.addCollisionRect(x,y,w,h,0x817c55);
+    // Stepped lower-left masonry. These are distinct from the high ledges.
+    for(const [x,y,w,h] of [
+      [29,257,14,42],[55,300,14,25],[87,328,15,47],
+      [115,320,13,25],[23,319,14,62]
+    ])this.addCollisionRect(x,y,w,h,0x827f58);
     this.add.rectangle(px(291),px(69),px(423),px(11),0xa69b72,.5).setDepth(5);
     this.add.rectangle(px(291),px(50),px(431),px(10),0x95895f,.45).setDepth(5);
     this.add.rectangle(px(290),px(257),px(561),px(5),0xaaa078,.5).setDepth(6);
