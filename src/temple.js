@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { TEMPLE_LAYOUT as L } from './temple-layout.js';
 
 /**
  * LEVEL 03 — TEMPLE OF BALANCE
@@ -14,13 +15,7 @@ import Phaser from 'phaser';
  * 6. Bolt installs plank on pivot B, weighs down its left end.
  * 7. Ninja jumps to upper lever C, opening the exit; both reunite.
  */
-const L={
-  width:2960,height:720,ground:620,
-  first:{x:455,y:565,span:348,padMin:284,padMax:388,ledgeX:684,ledgeY:365,switchX:804},
-  machine:{gate1:980,bench:1490,liftX:1540,basketX:1695,upperX:1735,upperY:309,switchX:1851},
-  second:{gate2:2035,plankX:2143,x:2323,y:565,padMin:2155,padMax:2248,ledgeX:2534,ledgeY:365,switchX:2642},
-  exitGate:2815,exitX:2895
-};
+
 const palette={
   bg:0x152536,stone:0x576d80,edge:0xa9bbc4,steel:0x889aaa,gold:0xe8c285,
   pink:0xc66d80,green:0x97d9b4,blue:0x8fd2df,wood:0xc8a171
@@ -383,7 +378,7 @@ export class Temple extends Phaser.Scene{
       // region is more reliable than requiring pixel-perfect plank contact.
       const weighted=this.bolt.x>board.padMin&&this.bolt.x<board.padMax
         &&this.bolt.y>500&&this.bolt.y<620;
-      const target=weighted?-.325:0;
+      const target=weighted?L.tiltAngle:0;
       board.angle=Phaser.Math.Linear(board.angle,target,.075);
       board.plank.setRotation(board.angle);
       for(const {offset,seg} of board.segments){
@@ -395,7 +390,7 @@ export class Temple extends Phaser.Scene{
   updatePulley(){
     const s=this.state;
     const ready=s.wheel&&s.rope;
-    const target=ready?(s.loaded==='heavy'?357:s.loaded==='light'?489:520):520;
+    const target=ready?(s.loaded==='heavy'?L.liftHighY:s.loaded==='light'?L.liftMidY:520):520;
     const v=(target-this.lift.y)*2.25;
     this.lift.setVelocityY(Math.abs(v)<3?0:clamp(v,-110,110));
     const liftRise=520-this.lift.y;
@@ -438,7 +433,7 @@ export class Temple extends Phaser.Scene{
   }
   update(_t,dt){
     if(this.state.done)return;
-    this.move(this.ninja,this.keys.nl,this.keys.nr,this.keys.nj,270,635,this.jumpState.n,dt);
+    this.move(this.ninja,this.keys.nl,this.keys.nr,this.keys.nj,L.ninjaRunSpeed,L.ninjaJumpVelocity,this.jumpState.n,dt);
     this.move(this.bolt,this.keys.bl,this.keys.br,this.keys.bj,205,375,this.jumpState.b,dt);
     if(Phaser.Input.Keyboard.JustDown(this.keys.ni))this.interactNinja();
     if(Phaser.Input.Keyboard.JustDown(this.keys.bi))this.interactBolt();
