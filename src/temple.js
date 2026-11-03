@@ -301,7 +301,7 @@ export class Temple extends Phaser.Scene {
       const gemKind=kind==='ninja'?'red':'blue';
       const upperTotal=M.crystals[gemKind].filter(([,y])=>y<250).length;
       const obtained=this.collectibles.filter(c=>c.kind===gemKind&&c.y<250&&c.found).length;
-      if(Math.abs(hero.x-portal.x)<75 && Math.abs(hero.body.bottom-px(M.topFloor))<42){
+      if(Math.abs(hero.x-portal.x)<75 && hero.y>px(175) && hero.y<px(253)){
         if(obtained<upperTotal){
           this.toast('Collect your remaining upper-room '+gemKind+' gems first.',0);return;
         }
@@ -413,7 +413,7 @@ export class Temple extends Phaser.Scene {
     for(const [hero,kind,key] of [[this.ninja,'ninja','F'],[this.bolt,'bolt','ENTER']]){
       const inTop=!this.states[kind+'Floor'];
       const p=this.portals[kind==='ninja'?'red':'blue'];
-      if(inTop && Math.abs(hero.x-p.x)<73&&Math.abs(hero.body.bottom-px(M.topFloor))<42){
+      if(inTop && Math.abs(hero.x-p.x)<73&&hero.y>px(175)&&hero.y<px(253)){
         this.interactionLabel.setText(key+' · Enter lower floor')
           .setPosition(hero.x-78,hero.y-94).setVisible(true);
         return;
