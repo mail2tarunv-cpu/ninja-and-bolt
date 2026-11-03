@@ -327,7 +327,7 @@ export class Temple extends Phaser.Scene {
     hero.setVelocityX(v<target?Math.min(v+accel,target):Math.max(v-accel,target));
     if(kleft.isDown||kright.isDown)hero.setFlipX(kleft.isDown);
     if(this.time.now-memory.press<120&&this.time.now-memory.ground<110){
-      hero.setVelocityY(-755);
+      hero.setVelocityY(-720);
       memory.press=-1e5;memory.ground=-1e5;memory.onBoard=false;
     }
     // Releasing jump early gives short hops; holding gives full jumps.
