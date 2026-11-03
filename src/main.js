@@ -3,7 +3,7 @@ import { Temple } from './temple.js';
 import './style.css';
 
 // One playable scene while we refine Ninja, Bolt and Temple of Balance.
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   width: 1162,
@@ -19,3 +19,6 @@ new Phaser.Game({
   scene: [Temple],
   render: { pixelArt: false, antialias: true }
 });
+
+// Expose only the game instance for automated browser smoke tests.
+window.__ninjaBoltGame = game;
