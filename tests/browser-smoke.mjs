@@ -46,8 +46,21 @@ async function main(){
     fps:window.__ninjaBoltGame.loop.actualFps};
  });
  console.log('Ninja from',oldX,'diagnostics:',JSON.stringify(diagnostics));
- if(!(diagnostics.x>oldX+5))throw Error('Input or physics update not working');
- console.log('PASS: scene rendering, both players, and keyboard movement.');
+ if(!(diagnostics.x>oldX+5))throw Error('Ninja input or physics update not working');
+ const oldBoltX=await page.evaluate(()=>window.__ninjaBoltGame.scene.getScene('Temple').bolt.x);
+ await page.keyboard.down('ArrowRight');
+ await page.waitForTimeout(850);
+ await page.keyboard.up('ArrowRight');
+ const newBoltX=await page.evaluate(()=>window.__ninjaBoltGame.scene.getScene('Temple').bolt.x);
+ console.log('Bolt moved from',oldBoltX,'to',newBoltX);
+ if(!(newBoltX>oldBoltX+5))throw Error('Bolt input or physics update not working');
+ const pixels=await page.evaluate(()=>{
+   const canvas=document.querySelector('#game canvas');
+   return Array.from(canvas.getContext('2d').getImageData(100,100,1,1).data);
+ });
+ console.log('Rendered map pixel',pixels);
+ if(!(pixels[3]>0&&pixels.slice(0,3).some(v=>v>5)))throw Error('Canvas is still blank');
+ console.log('PASS: rendered map, both playable characters, and both keyboard controls.');
 }
 try{await main()}catch(error){console.error(error.stack);process.exitCode=1}
 finally{await browser?.close();server.kill('SIGTERM');process.exit(process.exitCode||0)}
