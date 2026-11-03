@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { GRAVITY, moveWithPlatformCollisions, updateJumpAssist } from "./physics"
+import {
+  loadGameArt, drawStorybookBackground, drawStonePlatform,
+  drawStorybookHazard, drawStorybookLift, drawStorybookLever,
+  drawStorybookButton, drawStorybookBlock, drawStorybookGem,
+  drawStorybookExit, drawStorybookDecor, drawStorybookForeground,
+  type GameArt,
+} from "./art"
 
 const WORLD = { width: 1280, height: 720 }
 const ROBOT_START = { x: 78, y: 586 }
@@ -60,8 +67,8 @@ type AnimationDefinition = {
 
 const SPRITE_CELL = { width: 180, height: 220, baseline: 208 }
 const SPRITE_PATHS: Record<Role, string> = {
-  robot: "/sprites/robot-atlas.png",
-  ninja: "/sprites/ninja-atlas.png",
+  robot: "/art/robot-atlas.png",
+  ninja: "/art/ninja-atlas.png",
 }
 const CHARACTER_ANIMATIONS: Record<Role, Partial<Record<CharacterAnimation, AnimationDefinition>>> =
   {
@@ -447,62 +454,27 @@ function drawWorld(
   ctx: CanvasRenderingContext2D,
   game: Game,
   atlases: SpriteAtlases,
+  art: GameArt,
   now: number,
 ) {
   ctx.clearRect(0, 0, WORLD.width, WORLD.height)
-  const background = ctx.createLinearGradient(0, 0, 0, WORLD.height)
-  background.addColorStop(0, "#091225")
-  background.addColorStop(0.55, "#070d1d")
-  background.addColorStop(1, "#040814")
-  ctx.fillStyle = background
-  ctx.fillRect(0, 0, WORLD.width, WORLD.height)
+  drawStorybookBackground(ctx, art, now)
+  drawStorybookForeground(ctx, art)
+  drawStorybookDecor(ctx, art, now)
 
-  // Blueprint grid and technical framing.
-  ctx.lineWidth = 1
-  for (let x = 0; x <= WORLD.width; x += 32) {
-    ctx.strokeStyle =
-      x % 128 === 0 ? "rgba(97, 124, 190, .13)" : "rgba(81, 108, 165, .055)"
-    ctx.beginPath()
-    ctx.moveTo(x + 0.5, 0)
-    ctx.lineTo(x + 0.5, WORLD.height)
-    ctx.stroke()
+  if (art.objects?.complete && art.objects.naturalWidth > 0) {
+    drawStorybookHazard(ctx, GROUND_WATER, art, "factory", now)
+    drawStorybookHazard(ctx, QUICKSAND, art, "quicksand", now)
+  } else {
+    drawSandHazard(ctx, GROUND_WATER)
+    drawSandHazard(ctx, QUICKSAND)
   }
-  for (let y = 0; y <= WORLD.height; y += 32) {
-    ctx.strokeStyle =
-      y % 128 === 0 ? "rgba(97, 124, 190, .13)" : "rgba(81, 108, 165, .055)"
-    ctx.beginPath()
-    ctx.moveTo(0, y + 0.5)
-    ctx.lineTo(WORLD.width, y + 0.5)
-    ctx.stroke()
-  }
-  ctx.strokeStyle = "rgba(164, 105, 255, .42)"
-  ctx.lineWidth = 2
-  ctx.shadowColor = "#9c6cff"
-  ctx.shadowBlur = 12
-  ctx.strokeRect(8, 8, WORLD.width - 16, WORLD.height - 16)
-  ctx.shadowBlur = 0
 
-  ctx.fillStyle = "rgba(118, 146, 211, .18)"
-  for (let i = 0; i < 34; i += 1) {
-    const x = (i * 173 + 91) % WORLD.width
-    const y = (i * 83 + 47) % WORLD.height
-    ctx.fillRect(x, y, i % 5 === 0 ? 3 : 1.5, i % 5 === 0 ? 3 : 1.5)
-  }
-  ctx.strokeStyle = "rgba(117, 143, 199, .13)"
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(48, 98)
-  ctx.lineTo(180, 98)
-  ctx.moveTo(1050, 365)
-  ctx.lineTo(1210, 365)
-  ctx.moveTo(90, 548)
-  ctx.lineTo(220, 548)
-  ctx.stroke()
-
-  drawSandHazard(ctx, GROUND_WATER)
-  drawSandHazard(ctx, QUICKSAND)
-
-  solids.forEach((rect) => drawPlatform(ctx, rect))
+  solids.forEach((rect) => {
+    if (art.tiles?.complete && art.tiles.naturalWidth > 0)
+      drawStonePlatform(ctx, rect, art)
+    else drawPlatform(ctx, rect)
+  })
 
   // Marked vertical routes are reserved for the ninja.
   climbWalls.forEach((wall) => {
@@ -518,7 +490,9 @@ function drawWorld(
     }
   })
 
-  drawLift(ctx, 1076, game.liftY, 97)
+  if (art.objects?.complete && art.objects.naturalWidth > 0)
+    drawStorybookLift(ctx, art, 1076, game.liftY, 97, game.leverOn)
+  else drawLift(ctx, 1076, game.liftY, 97)
   ctx.strokeStyle = "rgba(92,225,230,.25)"
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -528,7 +502,9 @@ function drawWorld(
   ctx.lineTo(1163, 622)
   ctx.stroke()
 
-  drawLift(ctx, 830, game.exitLiftY, 97)
+  if (art.objects?.complete && art.objects.naturalWidth > 0)
+    drawStorybookLift(ctx, art, 830, game.exitLiftY, 97, game.exitLiftButton || game.topLiftButton)
+  else drawLift(ctx, 830, game.exitLiftY, 97)
   ctx.beginPath()
   ctx.moveTo(840, 130)
   ctx.lineTo(840, 272)
@@ -536,64 +512,42 @@ function drawWorld(
   ctx.lineTo(917, 272)
   ctx.stroke()
 
-  drawLever(ctx, game.leverOn)
-  drawFloorButton(ctx, 520, 288, game.exitLiftButton)
-  drawFloorButton(ctx, 1010, 118, game.topLiftButton)
+  if (!drawStorybookLever(ctx, art, game.leverOn)) drawLever(ctx, game.leverOn)
+  if (!drawStorybookButton(ctx, art, 520, 288, game.exitLiftButton))
+    drawFloorButton(ctx, 520, 288, game.exitLiftButton)
+  if (!drawStorybookButton(ctx, art, 1010, 118, game.topLiftButton))
+    drawFloorButton(ctx, 1010, 118, game.topLiftButton)
 
-  game.blocks.forEach((block) => {
-    const blockGradient = ctx.createLinearGradient(
-      block.x,
-      block.y,
-      block.x,
-      block.y + block.h,
-    )
-    blockGradient.addColorStop(0, "#ffc84c")
-    blockGradient.addColorStop(1, "#b87a20")
-    ctx.fillStyle = blockGradient
-    ctx.shadowColor = "#ffc84c"
-    ctx.shadowBlur = 8
-    roundedRect(ctx, block.x, block.y, block.w, block.h, 5)
-    ctx.fill()
-    ctx.shadowBlur = 0
-    ctx.strokeStyle = "#ffe59b"
-    ctx.lineWidth = 2
-    ctx.stroke()
+  game.blocks.forEach((block) => drawStorybookBlock(ctx, art, block))
+
+  game.gems.filter((gem) => !gem.collected).forEach((gem) => {
+    if (art.objects?.complete && art.objects.naturalWidth > 0)
+      drawStorybookGem(ctx, art, gem, gem.role === "ninja")
+    else drawGem(ctx, gem)
   })
 
-  game.gems.filter((gem) => !gem.collected).forEach((gem) => drawGem(ctx, gem))
-
-  // Exit pods.
+  // Both individual gates retain their exact original win/collision rectangles.
   ;[
     { x: 1090, role: "robot" as const, active: game.robotExit },
     { x: 1170, role: "ninja" as const, active: game.ninjaExit },
   ].forEach((pod) => {
-    const color = pod.role === "robot" ? "#ffcf4a" : "#b794ff"
-    ctx.fillStyle = "#101d31"
-    ctx.strokeStyle = color
-    ctx.lineWidth = 3
-    ctx.shadowColor = color
-    ctx.shadowBlur = pod.active ? 20 : 5
-    roundedRect(ctx, pod.x, 54, 58, 76, 9)
-    ctx.fill()
-    ctx.stroke()
-    ctx.shadowBlur = 0
-    ctx.fillStyle = color
-    ctx.font = "800 10px Inter, sans-serif"
-    ctx.textAlign = "center"
-    ctx.fillText(pod.role.toUpperCase(), pod.x + 29, 44)
+    drawStorybookExit(ctx, art, pod.x, pod.role, pod.active)
   })
 
   drawCharacterSprite(ctx, game.robot, atlases, now)
   drawCharacterSprite(ctx, game.ninja, atlases, now)
 
   if (!game.started) {
-    ctx.fillStyle = "rgba(4, 9, 17, .7)"
+    ctx.fillStyle = "rgba(18, 15, 38, .40)"
     ctx.fillRect(0, 0, WORLD.width, WORLD.height)
     ctx.fillStyle = "#eef6ff"
     ctx.font = "800 42px Inter, sans-serif"
     ctx.textAlign = "center"
-    ctx.fillText("CO-OP SYSTEM ONLINE", WORLD.width / 2, 314)
-    ctx.fillStyle = "#95a9be"
+    ctx.shadowColor = "#483355"
+    ctx.shadowBlur = 10
+    ctx.fillText("THE RUINS AWAIT", WORLD.width / 2, 314)
+    ctx.shadowBlur = 0
+    ctx.fillStyle = "#ffe8c2"
     ctx.font = "500 18px Inter, sans-serif"
     ctx.fillText("Press any movement key to begin", WORLD.width / 2, 353)
   }
@@ -837,6 +791,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<Game>(resetGame())
   const spritesRef = useRef<SpriteAtlases>({})
+  const artRef = useRef<GameArt>({})
   const animationRef = useRef(0)
   const [result, setResult] = useState<MissionResult | null>(null)
   const [failureRole, setFailureRole] = useState<Role | null>(null)
@@ -914,6 +869,7 @@ export default function App() {
       image.src = SPRITE_PATHS[role]
       spritesRef.current[role] = image
     })
+    loadGameArt(artRef.current)
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -1019,7 +975,7 @@ export default function App() {
         })
       }
 
-      drawWorld(ctx, game, spritesRef.current, time)
+      drawWorld(ctx, game, spritesRef.current, artRef.current, time)
       statAccumulator += dt
       if (statAccumulator > 0.12) {
         statAccumulator = 0

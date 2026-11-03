@@ -37,3 +37,23 @@ The original Figma sprite atlases are committed under `public/sprites/`. Each im
 - GitHub: https://github.com/mail2tarunv-cpu/ninja-and-bolt
 
 The Figma Make design is the source for this snapshot; future changes to it are **not** synced to GitHub automatically.
+
+## Fantasy ruins visual pass
+
+The generated fantasy artwork is now integrated as a cosmetic Canvas renderer in `src/art.ts`.
+It paints distant misty aqueducts and waterfalls, a subdued midground, floral
+foreground framing, moss-covered stone platforms, warm glowing crystals, two
+shrine exits, ornate platforms and switches, ruin lanterns, and spike hazards.
+Both Ninja and Robot use normalized 17-frame atlases rebuilt from the new
+storybook character art. The gameplay collision rectangles, player inputs,
+existing jump/coyote/buffer physics, score, and game rules are unchanged.
+
+Artwork is committed in `public/art/`. It loads asynchronously and supports
+simple shape fallbacks until the assets load. No hosted image URLs or third-party
+runtime services are required. Use `npm test` to run both art integrity and
+existing physics regression tests.
+
+The image-generation sheets were unevenly spaced, so unreliable frames were
+replaced with clean pose variants instead of shipping clipped or wall-baked
+animation frames. The result is a pragmatic first playable art pass, not a
+production-ready hand-authored tileset.
