@@ -14,7 +14,7 @@ new Phaser.Game({
   },
   physics: {
     default: 'arcade',
-    arcade: { gravity: { y: 1150 }, debug: false }
+    arcade: { gravity: { y: 1350 }, debug: false }
   },
   scene: [Temple],
   render: { pixelArt: false, antialias: true }
