@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { drawDistantFactory, drawAtmosphericHaze } from "./environmentDepth"
 import StoryModal from "./StoryModal"
 import FailureModal from "./FailureModal"
 import { GameSound } from "./sound"
@@ -274,83 +275,74 @@ function roundedRect(
 }
 
 function drawPlatform(ctx: CanvasRenderingContext2D, rect: Rect) {
-  const isHorizontalCatwalk = rect.h <= 28 && rect.w >= 90
-  const metal = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h)
-  metal.addColorStop(0, "#444b4c")
-  metal.addColorStop(0.16, "#2c3335")
-  metal.addColorStop(1, "#171d1f")
+  // Platform visuals are cosmetic; collision dimensions stay unchanged.
+  const horizontal = rect.h <= 28 && rect.w >= 90
+  const surface = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h)
+  surface.addColorStop(0, "#4f5c63")
+  surface.addColorStop(0.13, "#37464d")
+  surface.addColorStop(0.38, "#26343b")
+  surface.addColorStop(1, "#111b21")
 
   ctx.save()
-  if (isHorizontalCatwalk) {
-    ctx.shadowColor = "rgba(255, 174, 91, .28)"
-    ctx.shadowBlur = 10
+
+  // Railing silhouettes remain an ambient cue, not a second platform edge.
+  // Keep one faint rail on selected long mid-level walkways only.
+  if (horizontal && rect.w >= 220 && rect.y > 200 && rect.y < 600) {
+    const railY = rect.y - 17
+    ctx.strokeStyle = "rgba(113, 139, 149, .30)"
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(rect.x + 9, railY)
+    ctx.lineTo(rect.x + rect.w - 9, railY)
+    for (let x = rect.x + 16; x < rect.x + rect.w - 12; x += 128) {
+      ctx.moveTo(x, railY)
+      ctx.lineTo(x, rect.y - 2)
+    }
+    ctx.stroke()
   }
-  ctx.fillStyle = metal
-  ctx.strokeStyle = "#080d0f"
+
+  // The undershadow brings the gameplay surface in front of the faded factory.
+  if (horizontal) {
+    ctx.shadowColor = "rgba(2, 6, 10, .75)"
+    ctx.shadowBlur = 17
+    ctx.shadowOffsetY = 9
+  }
+  ctx.fillStyle = surface
+  ctx.strokeStyle = "#091115"
   ctx.lineWidth = 2
   roundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 3)
   ctx.fill()
   ctx.stroke()
   ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
 
-  ctx.fillStyle = isHorizontalCatwalk ? "#776a55" : "#586164"
-  ctx.fillRect(rect.x + 2, rect.y + 2, rect.w - 4, 4)
-  ctx.fillStyle = "rgba(0, 0, 0, .34)"
-  ctx.fillRect(rect.x + 2, rect.y + rect.h - 5, rect.w - 4, 3)
+  if (horizontal) {
+    // Bright, continuous top lip indicates the exact landing surface.
+    const lip = ctx.createLinearGradient(rect.x, 0, rect.x + rect.w, 0)
+    lip.addColorStop(0, "#9daeb3")
+    lip.addColorStop(0.5, "#d2c7b0")
+    lip.addColorStop(1, "#9daeb3")
+    ctx.fillStyle = lip
+    ctx.fillRect(rect.x + 3, rect.y + 2, Math.max(0, rect.w - 6), 4)
+    ctx.fillStyle = "rgba(247, 190, 122, .78)"
+    ctx.fillRect(rect.x + 3, rect.y + 2, Math.max(0, rect.w - 6), 1.5)
+    ctx.fillStyle = "rgba(7, 14, 18, .52)"
+    ctx.fillRect(rect.x + 3, rect.y + rect.h - 6, Math.max(0, rect.w - 6), 4)
 
-  ctx.strokeStyle = "rgba(183, 94, 45, .46)"
-  ctx.lineWidth = 1
-  for (let x = rect.x + 31; x < rect.x + rect.w - 8; x += 67) {
-    const streakLength = 5 + ((x + rect.y) % 11)
-    ctx.beginPath()
-    ctx.moveTo(x, rect.y + 5)
-    ctx.lineTo(x - 1, Math.min(rect.y + rect.h - 3, rect.y + streakLength))
-    ctx.stroke()
-    ctx.strokeStyle = "rgba(98, 48, 27, .34)"
-    ctx.beginPath()
-    ctx.moveTo(x + 2, rect.y + 6)
-    ctx.lineTo(x + 4, Math.min(rect.y + rect.h - 3, rect.y + streakLength + 4))
-    ctx.stroke()
-    ctx.strokeStyle = "rgba(183, 94, 45, .46)"
-  }
-
-  for (let x = rect.x + 14; x < rect.x + rect.w - 8; x += 32) {
-    ctx.fillStyle = "#6d7778"
-    ctx.beginPath()
-    ctx.arc(x, rect.y + 8, 2.2, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = "rgba(188, 103, 54, .45)"
-    ctx.beginPath()
-    ctx.arc(x + 1, rect.y + 9, 1, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  if (isHorizontalCatwalk) {
-    const railTop = rect.y - 20
-    ctx.strokeStyle = "#323a3c"
-    ctx.lineWidth = 2.5
-    ctx.beginPath()
-    ctx.moveTo(rect.x + 5, railTop)
-    ctx.lineTo(rect.x + rect.w - 5, railTop)
-    ctx.moveTo(rect.x + 5, rect.y - 10)
-    ctx.lineTo(rect.x + rect.w - 5, rect.y - 10)
-    for (let x = rect.x + 7; x <= rect.x + rect.w - 7; x += 58) {
-      ctx.moveTo(x, rect.y)
-      ctx.lineTo(x, railTop)
-    }
-    ctx.moveTo(rect.x + rect.w - 7, rect.y)
-    ctx.lineTo(rect.x + rect.w - 7, railTop)
-    ctx.stroke()
-
-    ctx.strokeStyle = "rgba(165, 77, 38, .5)"
-    ctx.lineWidth = 1
-    for (let x = rect.x + 36; x < rect.x + rect.w; x += 116) {
+    // Sparse anchor points suggest construction without visual repetition.
+    ctx.fillStyle = "rgba(170, 188, 190, .48)"
+    for (let x = rect.x + 17; x < rect.x + rect.w - 10; x += 126) {
       ctx.beginPath()
-      ctx.moveTo(x, railTop)
-      ctx.lineTo(x + 3, rect.y - 7)
-      ctx.stroke()
+      ctx.arc(x, rect.y + 13, 1.6, 0, Math.PI * 2)
+      ctx.fill()
     }
+  } else {
+    ctx.fillStyle = "rgba(157, 179, 185, .20)"
+    ctx.fillRect(rect.x + 2, rect.y + 2, Math.max(0, rect.w - 4), 3)
+    ctx.fillStyle = "rgba(3, 8, 12, .35)"
+    ctx.fillRect(rect.x + 2, rect.y + rect.h - 4, Math.max(0, rect.w - 4), 2)
   }
+
   ctx.restore()
 }
 
@@ -1446,6 +1438,7 @@ function drawFactoryBackground(ctx: CanvasRenderingContext2D, now: number) {
     }
   }
 
+  drawDistantFactory(ctx, now)
   drawFurnaceDepth(ctx, now)
   drawBackgroundGear(ctx, 842, 568, 96, 20, now / 26000)
   drawBackgroundGear(ctx, 1013, 576, 76, 16, -now / 20800 + 0.09)
@@ -1531,6 +1524,8 @@ function drawWorld(
 ) {
   ctx.clearRect(0, 0, WORLD.width, WORLD.height)
   drawFactoryBackground(ctx, now)
+  // A cool atmospheric plane between the backdrop and every playable surface.
+  drawAtmosphericHaze(ctx)
 
   ctx.strokeStyle = "rgba(100, 113, 120, .46)"
   ctx.lineWidth = 2
