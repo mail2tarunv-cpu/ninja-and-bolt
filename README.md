@@ -36,3 +36,9 @@ Both players must collect their own key and reach their respective exit doors to
 - GitHub: https://github.com/mail2tarunv-cpu/ninja-and-bolt
 
 The older fantasy art pipeline (`src/art.ts` and `public/art/`) is retained as archival code/assets but is no longer used by the live game. This is a snapshot, not an automatic Figma↔GitHub sync.
+
+## Story introduction and audio
+
+At launch, three illustrated panels introduce Halloway Toy Works, Ninja and Unit 7, their complementary abilities, and the shared escape objective. They appear over a paused game canvas, before the mission timer begins. A **STORY** button reopens the introduction, and **RESET** / **PLAY AGAIN** restart gameplay without forcing the introduction again.
+
+The story artwork lives under `public/story/`. The game's soundtrack is an original procedural music-box and toy-factory rhythm built with the browser's Web Audio API (`src/sound.ts`); no licensed tracks or external audio dependency are used. Sound effects cover jumping, building, gems, keys, switches, success, failure, and interface taps. The **SOUND ON / OFF** control mutes or unmutes both soundtrack and SFX, and persists locally.

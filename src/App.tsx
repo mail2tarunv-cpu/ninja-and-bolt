@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import StoryModal from "./StoryModal"
+import { GameSound } from "./sound"
 import { GRAVITY, moveWithPlatformCollisions, updateJumpAssist } from "./physics"
 
 const WORLD = { width: 1280, height: 720 }
@@ -1876,6 +1878,18 @@ export default function App() {
   const [failureHazard, setFailureHazard] = useState<FailureHazard>("quicksand")
   const [animatedScore, setAnimatedScore] = useState(0)
   const [resultsReady, setResultsReady] = useState(false)
+  const [storyOpen, setStoryOpen] = useState(true)
+  const [sound] = useState(() => new GameSound())
+  const [soundEnabled, setSoundEnabled] = useState(() => sound.isEnabled())
+  const soundsPreviousRef = useRef({
+    gems: 0,
+    blocks: 0,
+    robotKey: false,
+    ninjaKey: false,
+    lever: false,
+    robotVy: 0,
+    ninjaVy: 0,
+  })
   const [stats, setStats] = useState({
     robot: 0,
     ninja: 0,
@@ -1887,6 +1901,10 @@ export default function App() {
   })
   const reset = useCallback(() => {
     gameRef.current = resetGame()
+    soundsPreviousRef.current = {
+      gems: 0, blocks: 0, robotKey: false, ninjaKey: false,
+      lever: false, robotVy: 0, ninjaVy: 0,
+    }
     setStats({
       robot: 0,
       ninja: 0,
@@ -1903,9 +1921,32 @@ export default function App() {
     setResultsReady(false)
   }, [])
   const returnToHome = useCallback(() => {
+    sound.stop()
     reset()
+    setStoryOpen(true)
     window.scrollTo({ top: 0, behavior: "smooth" })
-  }, [reset])
+  }, [reset, sound])
+
+  useEffect(() => {
+    const game = gameRef.current
+    const now = performance.now()
+    if (storyOpen) {
+      pauseMissionTimer(game, now)
+      game.keys.clear()
+    } else if (!result && !failureRole) {
+      resumeMissionTimer(game, now)
+      game.lastTime = now
+    }
+  }, [storyOpen, result, failureRole])
+
+  useEffect(() => () => sound.destroy(), [sound])
+
+  const toggleSound = useCallback(() => {
+    const next = !sound.isEnabled()
+    sound.setEnabled(next)
+    setSoundEnabled(next)
+    if (next) sound.play('ui')
+  }, [sound])
 
   useEffect(() => {
     if (!result) return
@@ -1976,10 +2017,10 @@ export default function App() {
       if (controlledKeys.has(event.code)) event.preventDefault()
       const game = gameRef.current
       if (event.code === "KeyR") {
-        reset()
+        if (!storyOpen) { reset(); sound.start() }
         return
       }
-      if (game.won || game.failedRole) return
+      if (storyOpen || game.won || game.failedRole) return
       if (controlledKeys.has(event.code))
         startMissionTimer(game, performance.now())
       game.keys.add(event.code)
@@ -1995,8 +2036,12 @@ export default function App() {
       if (document.hidden) {
         pauseMissionTimer(game, now)
         game.keys.clear()
+        sound.stop()
       } else {
-        resumeMissionTimer(game, now)
+        if (!storyOpen) {
+          resumeMissionTimer(game, now)
+          if (game.started && !game.won && !game.failedRole) sound.start()
+        }
         game.lastTime = now
       }
     }
@@ -2007,9 +2052,26 @@ export default function App() {
       const game = gameRef.current
       const dt = Math.min((time - game.lastTime) / 1000, 0.035)
       game.lastTime = time
-      if (!game.won && !game.failedRole && !game.paused) updateGame(game, dt)
+      if (!storyOpen && !game.won && !game.failedRole && !game.paused) updateGame(game, dt)
+
+      if (!storyOpen && !game.won && !game.failedRole) {
+        const old = soundsPreviousRef.current
+        const gems = game.gems.filter(gem => gem.collected).length
+        if (gems > old.gems) sound.play('gem')
+        if (game.blocks.length > old.blocks) sound.play('build')
+        if ((game.robotHasKey && !old.robotKey) || (game.ninjaHasKey && !old.ninjaKey)) sound.play('key')
+        if (game.leverOn !== old.lever) sound.play('switch')
+        if ((game.robot.vy < -430 && old.robotVy >= -430) || (game.ninja.vy < -430 && old.ninjaVy >= -430)) sound.play('jump')
+        soundsPreviousRef.current = {
+          gems, blocks: game.blocks.length, robotKey: game.robotHasKey,
+          ninjaKey: game.ninjaHasKey, lever: game.leverOn,
+          robotVy: game.robot.vy, ninjaVy: game.ninja.vy,
+        }
+      }
 
       if (game.failedRole && !game.failureHandled) {
+        sound.stop()
+        sound.play('failure')
         game.failureHandled = true
         stopMissionTimer(game, time)
         game.keys.clear()
@@ -2018,6 +2080,8 @@ export default function App() {
       }
 
       if (game.won && !game.resultCalculated) {
+        sound.stop()
+        sound.play('victory')
         game.resultCalculated = true
         stopMissionTimer(game, time)
         game.keys.clear()
@@ -2084,7 +2148,7 @@ export default function App() {
       window.removeEventListener("keyup", keyup)
       document.removeEventListener("visibilitychange", visibilitychange)
     }
-  }, [reset])
+  }, [reset, storyOpen, sound])
 
   return (
     <main className="app-shell">
@@ -2102,7 +2166,13 @@ export default function App() {
           <strong>Mission 1</strong>
         </div>
         <div className="header-actions">
-          <button className="reset-button" onClick={reset}>
+          <button className="topbar-secondary" onClick={() => { sound.play('ui'); setStoryOpen(true) }} disabled={Boolean(result || failureRole)}>
+            STORY
+          </button>
+          <button className="topbar-secondary" onClick={toggleSound} aria-label={soundEnabled ? 'Mute music and sound effects' : 'Enable music and sound effects'}>
+            {soundEnabled ? 'SOUND ON' : 'SOUND OFF'}
+          </button>
+          <button className="reset-button" onClick={() => { reset(); sound.start() }}>
             RESET <Key>R</Key>
           </button>
         </div>
@@ -2156,6 +2226,12 @@ export default function App() {
             height={WORLD.height}
             aria-label="Co-op obstacle course game"
           />
+          {storyOpen && (
+            <StoryModal
+              onNavigate={() => sound.play('ui')}
+              onBegin={() => { sound.play('ui'); sound.start(); setStoryOpen(false) }}
+            />
+          )}
           {failureRole && (
             <div
               className="failure-overlay"
@@ -2176,7 +2252,7 @@ export default function App() {
                 </small>
                 <strong id="failure-title">Mission 1 Failed</strong>
                 <div className="failure-actions">
-                  <button className="retry-mission" onClick={reset}>
+                  <button className="retry-mission" onClick={() => { reset(); sound.start() }}>
                     RETRY MISSION
                   </button>
                   <button className="return-home" onClick={returnToHome}>
@@ -2195,9 +2271,9 @@ export default function App() {
             >
               <section className="results-panel">
                 <header className="results-header">
-                  <span>LINK ESTABLISHED</span>
-                  <h2 id="results-title">MISSION COMPLETE!</h2>
-                  <p>Both operatives made it home.</p>
+                  <span>HALLOWAY TOY WORKS / EXTRACTION COMPLETE</span>
+                  <h2 id="results-title">NIGHT SHIFT OVER.</h2>
+                  <p>For the first time in thirty years, Unit 7 gets to go home.</p>
                 </header>
 
                 <div className="team-score" aria-live="polite">
@@ -2270,7 +2346,7 @@ export default function App() {
 
                 <button
                   className="play-again"
-                  onClick={reset}
+                  onClick={() => { reset(); sound.start() }}
                   disabled={!resultsReady}
                 >
                   {resultsReady ? "PLAY AGAIN" : "CALCULATING..."}
