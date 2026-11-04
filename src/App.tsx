@@ -2199,7 +2199,7 @@ export default function App() {
   }, [reset, storyOpen, pauseOpen, sound])
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${titleOpen || (storyOpen && !hasSeenIntro) ? "is-intro" : ""}`}>
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark" aria-hidden="true">

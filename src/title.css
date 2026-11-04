@@ -23,3 +23,22 @@
  .title-sound {top:20px;right:20px;}
 }
 @media(max-height:450px) {.title-brand {top:9%;}.title-brand h1 {font-size:46px;}.title-brand p {margin-top:10px;}.title-start {bottom:10%;}.title-start button {min-height:48px;font-size:16px;}}
+/* Reserve the game layout during the introduction, then reveal its controls. */
+.app-shell .topbar,
+.app-shell .status-strip,
+.app-shell > .controls {
+  transition:opacity .55s ease,transform .55s ease;
+}
+.app-shell.is-intro .topbar,
+.app-shell.is-intro .status-strip,
+.app-shell.is-intro > .controls {
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:translateY(8px);
+}
+.app-shell.is-intro .game-frame {border-color:transparent;box-shadow:none;}
+.app-shell .game-frame {transition:border-color .55s ease,box-shadow .55s ease;}
+@media(prefers-reduced-motion:reduce) {
+ .app-shell .topbar,.app-shell .status-strip,.app-shell > .controls,.app-shell .game-frame {transition:none;transform:none;}
+}
