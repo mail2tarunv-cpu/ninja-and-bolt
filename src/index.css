@@ -337,3 +337,221 @@ canvas { width:100%; height:100%; display:block; }
   *,*::before,*::after { animation-duration:.001ms!important; transition-duration:.001ms!important; }
   .result-gems i { opacity:1; }
 }
+
+
+/* -------------------------------------------------------------
+   SINGLE-VIEW GAME SHELL / 2026-11
+   The complete 16:9 canvas plus minimal chrome fits the viewport.
+   Leave the existing game-scene drawing and collision scale intact.
+   ------------------------------------------------------------- */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+body { overscroll-behavior: none; }
+.app-shell {
+  /* 166px is reserved for the title, status HUD, controls and gaps.
+     The height-constrained width protects short laptops and landscape. */
+  --stage-width: min(calc(100vw - 24px), calc(177.7778dvh - 296px), 1640px);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  padding: 8px 12px;
+  margin: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 40px auto 35px;
+  gap: 7px;
+  justify-items: center;
+  align-content: center;
+  background:
+    radial-gradient(ellipse 65% 50% at 50% -15%, rgba(71, 106, 128, .16), transparent 80%),
+    linear-gradient(180deg, #101820, #090f16);
+}
+.topbar, .game-frame, .controls {
+  width: var(--stage-width);
+  max-width: 100%;
+  margin: 0;
+  min-width: 0;
+}
+.topbar {
+  min-height: 0;
+  height: 40px;
+  grid-template-columns: minmax(160px, 1fr) auto minmax(160px, 1fr);
+  gap: 9px;
+  padding-inline: 5px;
+  align-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.brand { gap: 9px; }
+.brand-mark { width: 27px; height: 27px; border-radius: 3px; box-shadow: none; }
+.brand-mark span:first-child { width: 11px; left: 4px; top: 5px; }
+.brand-mark span:last-child { height: 11px; right: 4px; bottom: 4px; }
+.brand h1 { font-size: 21px; letter-spacing: .06em; }
+.mission { padding: 0 10px; gap: 6px; }
+.mission strong { font-size: 10px; letter-spacing: .11em; }
+.mission > span:not(.mission-indicator) { color: #8b9aaa; font-size: 9px; }
+.header-actions { gap: 6px; }
+.topbar-secondary, .reset-button {
+  height: 29px;
+  min-height: 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  border-color: rgba(130, 153, 170, .25);
+  background: rgba(18, 31, 43, .66);
+  font-size: 9px;
+  letter-spacing: .05em;
+}
+.reset-button { color: #ecc18a; border-color: rgba(239, 181, 115, .33); }
+.reset-button .key { height: 16px; min-width: 17px; margin-left: 4px; }
+.game-frame {
+  display: grid;
+  grid-template-rows: 44px auto;
+  height: auto;
+  min-height: 0;
+  max-height: calc(100dvh - 110px);
+  border: 1px solid rgba(118, 140, 151, .34);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .38);
+  background: #111a23;
+}
+.status-strip {
+  box-sizing: border-box;
+  height: 44px;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+  border-bottom: 1px solid rgba(133, 151, 163, .17);
+  background: linear-gradient(90deg, rgba(208, 157, 99, .035), transparent 45%, rgba(159, 131, 201, .035)), #111b25;
+}
+.player-status { min-width:0; gap: 8px; padding: 3px 12px; }
+.ninja-status { justify-content: flex-end; }
+.hud-avatar { width: 27px; height: 31px; flex-basis: 27px; }
+.hud-name small { font-size: 8px; letter-spacing: .09em; }
+.hud-name strong { font-size: 14px; }
+.gem-count {
+  padding: 3px 7px;
+  gap: 5px;
+  border: none;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, .17);
+}
+.gem-count span { font-size: 8px; }
+.gem-count strong { font-size: 12px; }
+.block-count { padding: 0; background: transparent; border: none; color: #8d9cab; }
+.key-status { padding: 3px 5px; font-size: 9px; }
+.objective { min-width: 150px; padding: 5px 12px; }
+.objective small { font-size: 8px; }
+.mission-timer strong { font-size: 19px; margin-top: 0; }
+.canvas-wrap {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #111a23;
+}
+.canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+}
+.controls {
+  box-sizing: border-box;
+  height: 35px;
+  min-height: 0;
+  padding: 0 11px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+  align-items: center;
+  gap: 12px;
+  background: rgba(17, 27, 37, .70);
+  border: 1px solid rgba(130, 150, 166, .16);
+  border-radius: 6px;
+}
+.controls .control-card {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.controls .ninja-card { justify-content: flex-end; }
+.controls .control-avatar { display: none; }
+.controls .control-identity { gap: 0; }
+.controls .control-identity small { font-size: 9px; color: #d0dae4; }
+.controls .control-identity strong { font-size: 8px; color: #778da1; }
+.controls .control-shortcuts { gap: 9px; margin: 0 0 0 12px; }
+.controls .ninja-card .control-shortcuts { margin: 0 12px 0 0; }
+.controls .control-shortcuts > span { font-size: 9px; color: #a2b0bd; }
+.controls .key { height: 18px; min-width: 17px; padding: 0 3px; font-size: 9px; border-radius: 3px; }
+.controls .co-op-tip {
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  white-space: nowrap;
+}
+.controls .co-op-tip span { font-size: 9px; color: #a9b7c2; }
+.controls .co-op-mark { color: #e9ae70; }
+@media (max-width: 1100px) {
+  .controls { grid-template-columns: 1fr 1fr; }
+  .controls .co-op-tip, .block-count { display: none; }
+}
+@media (max-width: 800px) {
+  .mission { display: none; }
+  .topbar { grid-template-columns: minmax(0,1fr) auto; }
+  .player-status { padding: 3px 7px; gap: 5px; }
+  .hud-avatar { display: none; }
+  .status-strip { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+  .gem-count span { display: none; }
+  .objective { min-width: 98px; padding-inline: 7px; border-inline: 1px solid rgba(130,150,166,.15); }
+  .objective small { display: none; }
+  .mission-timer strong { font-size: 16px; }
+  .controls { gap: 5px; }
+  .controls .control-identity { display: none; }
+  .controls .control-shortcuts { gap: 5px; margin: 0; }
+  .controls .ninja-card .control-shortcuts { margin: 0; }
+  .controls .control-shortcuts > span { font-size: 8px; }
+}
+@media (max-width: 520px) {
+  .app-shell { padding: 7px 8px; --stage-width: min(calc(100vw - 16px), calc(177.7778dvh - 296px)); }
+  .topbar { height: 38px; }
+  .brand h1 { font-size: 18px; }
+  .brand-mark { width: 22px; height: 22px; }
+  .header-actions { gap: 4px; }
+  .topbar-secondary, .reset-button { padding: 0 6px; font-size: 8px; }
+  .status-strip { height: 42px; }
+  .game-frame { grid-template-rows: 42px auto; }
+  .hud-name strong { font-size: 11px; }
+  .objective { min-width: 74px; }
+  .controls { height: 32px; }
+  .controls .control-shortcuts > span { font-size: 0; gap: 2px; }
+  .controls .key { font-size: 9px; }
+  .controls .control-shortcuts > span:nth-child(2) { display:none; }
+}
+@media (max-height: 560px) {
+  .topbar { height: 34px; }
+  .controls { height: 29px; }
+  .game-frame { grid-template-rows: 39px auto; }
+  .status-strip { height: 39px; }
+}
+

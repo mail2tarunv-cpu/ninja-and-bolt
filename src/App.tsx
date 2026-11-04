@@ -1613,15 +1613,36 @@ function drawWorld(
   drawCharacterSprite(ctx, game.ninja, atlases, now)
 
   if (!game.started) {
-    ctx.fillStyle = "rgba(4, 9, 17, .7)"
+    // Keep the level visible and readable before the first input.
+    ctx.save()
+    ctx.fillStyle = "rgba(5, 12, 20, .27)"
     ctx.fillRect(0, 0, WORLD.width, WORLD.height)
-    ctx.fillStyle = "#eef6ff"
-    ctx.font = "800 42px Inter, sans-serif"
+    const prompt = { x: WORLD.width / 2 - 227, y: 295, w: 454, h: 116 }
+    const surface = ctx.createLinearGradient(0, prompt.y, 0, prompt.y + prompt.h)
+    surface.addColorStop(0, "rgba(17, 29, 40, .97)")
+    surface.addColorStop(1, "rgba(9, 17, 29, .96)")
+    ctx.shadowColor = "rgba(1, 5, 9, .6)"
+    ctx.shadowBlur = 26
+    ctx.shadowOffsetY = 12
+    ctx.fillStyle = surface
+    roundedRect(ctx, prompt.x, prompt.y, prompt.w, prompt.h, 12)
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetY = 0
+    ctx.strokeStyle = "rgba(136, 161, 170, .32)"
+    ctx.lineWidth = 1.25
+    ctx.stroke()
     ctx.textAlign = "center"
-    ctx.fillText("CO-OP SYSTEM ONLINE", WORLD.width / 2, 314)
-    ctx.fillStyle = "#95a9be"
-    ctx.font = "500 18px Inter, sans-serif"
-    ctx.fillText("Press any movement key to begin", WORLD.width / 2, 353)
+    ctx.fillStyle = "#e5b47a"
+    ctx.font = "800 11px Inter, sans-serif"
+    ctx.fillText("HALLOWAY TOY WORKS  /  RESCUE 01", WORLD.width / 2, prompt.y + 25)
+    ctx.fillStyle = "#f3f7fa"
+    ctx.font = "800 27px Inter, sans-serif"
+    ctx.fillText("READY TO ESCAPE?", WORLD.width / 2, prompt.y + 59)
+    ctx.fillStyle = "#a9bdca"
+    ctx.font = "600 14px Inter, sans-serif"
+    ctx.fillText("Move either character to begin", WORLD.width / 2, prompt.y + 89)
+    ctx.restore()
   }
 }
 
