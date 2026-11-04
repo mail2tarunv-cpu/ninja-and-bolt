@@ -393,3 +393,38 @@ body { overscroll-behavior:none; }
  .gem-slot {font-size:12px;}
  .app-shell .objective {min-width:48px;padding:0 4px;}
 }
+
+/* Player identity and balanced controls. */
+.app-shell .controls {gap:16px;padding:6px 0;}
+.app-shell .controls .control-card {padding:12px 16px;border:1px solid #ffffff0c;border-left:3px solid #d9ab66;border-radius:8px;background:#13202d;gap:9px;}
+.app-shell .controls .ninja-card {align-items:flex-start;border-left-color:#ae8cdb;}
+.app-shell .robot-status .hud-name strong,.app-shell .robot-card .control-identity small {color:#f4c987;}
+.app-shell .ninja-status .hud-name strong,.app-shell .ninja-card .control-identity small {color:#c6a4f3;}
+.robot-status .gem-slot {color:#8c744f;}
+.ninja-status .gem-slot {color:#79638f;}
+.app-shell .controls .control-shortcuts > span {font-weight:500;font-size:14px;}
+.app-shell .controls .control-shortcuts,.app-shell .controls .ninja-card .control-shortcuts {gap:10px;}
+.app-shell .controls .robot-card .key {border-color:#8b7456;}
+.app-shell .controls .ninja-card .key {border-color:#7c689a;}
+.app-shell .topbar-secondary {font-weight:600;}
+.key-progress {display:inline-flex;align-items:center;gap:4px;font:500 11px Inter,sans-serif;color:#a8b5c6;white-space:nowrap;}
+.key-progress > span {font-size:20px;}
+.robot-status .key-progress.found {color:#f4c987;}
+.ninja-status .key-progress.found {color:#c6a4f3;}
+.help-controls strong {color:#f4c987;}
+.help-controls p:nth-child(2) strong {color:#c6a4f3;}
+@media(max-width:1100px) {
+ .app-shell {--stage-width:min(calc(100vw - 24px),calc((100dvh - 260px)*16/9),1640px);grid-template-rows:44px auto 140px;}
+ .app-shell .controls {height:140px;}
+ .app-shell .controls .control-card {justify-content:flex-start;}
+}
+@media(max-width:560px) {
+ .app-shell {--stage-width:calc(100vw - 24px);grid-template-rows:44px auto auto;}
+ .app-shell .controls {height:auto;}
+ .app-shell .controls .control-card {padding:12px 8px;}
+ .key-progress {font-size:0;gap:0;}
+ .key-progress > span {font-size:16px;}
+}
+.app-shell .controls .ninja-card {flex-direction:column;}
+.app-shell .controls .ninja-card .control-identity {order:-1;}
+.key-progress svg {flex-shrink:0;}

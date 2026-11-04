@@ -11,23 +11,23 @@ const STORY = [
   {
     eyebrow: '01 / THE FACTORY',
     title: 'The factory never stopped.',
-    description: 'Thirty years ago, everyone left Halloway Toy Works. The machines kept running. And Unit 7 kept waiting.',
+    description: 'Thirty years ago, everyone left Halloway Toy Works. The machines kept running. And Bolt kept waiting.',
     image: '/story/unit-7.jpg',
-    alt: 'Unit 7 standing alone in an abandoned toy factory.',
+    alt: 'Bolt standing alone in an abandoned toy factory.',
   },
   {
     eyebrow: '02 / THE TEAM',
     title: 'Someone came back.',
-    description: 'The Ninja has come to bring Unit 7 home. One climbs walls. The other builds paths. Neither can escape alone.',
+    description: 'The Ninja has come to bring Bolt home. One climbs walls. The other builds paths. Neither can escape alone.',
     image: '/story/rescue.jpg',
-    alt: 'The Ninja reaching Unit 7 inside the old factory.',
+    alt: 'The Ninja reaching Bolt inside the old factory.',
   },
   {
     eyebrow: '03 / THE MISSION',
     title: 'Get them both home.',
     description: 'Collect gems, recover both keys, and reach the two exits. Keep an eye on the sinking toy pits.',
     image: '/story/escape-plan.jpg',
-    alt: 'The Ninja and Unit 7 activating the escape lift together.',
+    alt: 'The Ninja and Bolt activating the escape lift together.',
   },
 ] as const
 
@@ -92,14 +92,14 @@ export default function StoryModal({ mode = 'onboarding', onBegin, onNavigate }:
             {page === 1 ? (
               <div className="story-roles" aria-label="Character abilities">
                 <div><img src="/sprites/ninja-portrait.png" alt="" /><span><strong>THE NINJA</strong><small>↑ CLIMB WALLS</small></span></div>
-                <div><img src="/sprites/robot-portrait.png" alt="" /><span><strong>UNIT 7</strong><small>Q BUILD CRATES</small></span></div>
+                <div><img src="/sprites/robot-portrait.png" alt="" /><span><strong>BOLT</strong><small>Q BUILD CRATES</small></span></div>
               </div>
             ) : page === 2 ? (
               <div className="story-checks" aria-label="Mission checklist">
                 <span>◆ COLLECT GEMS</span><span>⌕ FIND BOTH KEYS</span><span>⇥ REACH BOTH EXITS</span>
               </div>
             ) : (
-              <div className="story-stamp"><strong>UNIT 07</strong><span>AWAITING RESCUE</span></div>
+              <div className="story-stamp"><strong>BOLT</strong><span>AWAITING RESCUE</span></div>
             )}
           </div>
         </div>

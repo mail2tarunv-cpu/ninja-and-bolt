@@ -643,7 +643,7 @@ function drawExitDoor(
   ctx.fillStyle = locked ? "#8b98a8" : roleColor
   ctx.font = "800 8px Inter, sans-serif"
   ctx.textAlign = "center"
-  ctx.fillText(role.toUpperCase(), centerX, door.y - 8)
+  ctx.fillText(role === "robot" ? "BOLT" : "NINJA", centerX, door.y - 8)
 
   if (locked) {
     const lockX = door.x + door.w - 17
@@ -1903,6 +1903,7 @@ export default function App() {
   const [storyOpen, setStoryOpen] = useState(true)
   const [hasSeenIntro, setHasSeenIntro] = useState(false)
   const [pauseOpen, setPauseOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [sound] = useState(() => new GameSound())
   const [soundEnabled, setSoundEnabled] = useState(() => sound.isEnabled())
   const soundsPreviousRef = useRef({
@@ -1944,6 +1945,7 @@ export default function App() {
     setAnimatedScore(0)
     setResultsReady(false)
     setPauseOpen(false)
+    setHelpOpen(false)
   }, [])
   const returnToHome = useCallback(() => {
     sound.stop()
@@ -2055,6 +2057,7 @@ export default function App() {
       }
       if (event.code === "Escape" && !storyOpen && !game.won && !game.failedRole) {
         event.preventDefault()
+        setHelpOpen(false)
         setPauseOpen(open => !open)
         sound.play('ui')
         return
@@ -2202,14 +2205,14 @@ export default function App() {
           </div>
         </div>
         <div className="header-actions">
-          <button className="topbar-secondary" onClick={() => { sound.play('ui'); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole)}>
+          <button className="topbar-secondary" onClick={() => { sound.play('ui'); setHelpOpen(true); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole)}>
             How to play
           </button>
           <button className="topbar-secondary" onClick={toggleSound} aria-label={soundEnabled ? 'Mute music and sound effects' : 'Enable music and sound effects'}>
-            {soundEnabled ? '♪ SOUND ON' : '♪ MUTED'}
+            {soundEnabled ? '♪ Sound on' : '♪ Muted'}
           </button>
-          <button className="topbar-secondary pause-button" onClick={() => { sound.play('ui'); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole || pauseOpen)} aria-label="Pause mission" title="Pause (Esc)">
-            Ⅱ PAUSE
+          <button className="topbar-secondary pause-button" onClick={() => { sound.play('ui'); setHelpOpen(false); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole || pauseOpen)} aria-label="Pause mission" title="Pause (Esc)">
+            Ⅱ Pause
           </button>
 
         </div>
@@ -2222,11 +2225,11 @@ export default function App() {
             <div className="hud-name"><strong>Bolt</strong></div>
             <span className="gem-count"><span aria-label={`${stats.robot} of 3 gems`}>{[0,1,2].map(i => <i key={i} className={i < stats.robot ? "gem-slot collected" : "gem-slot"}>◆</i>)}</span></span>
             <span className="block-count">▣ {stats.blocks} blocks</span>
-            {stats.robotHasKey && <span className="key-status"><i aria-hidden="true" /> KEY</span>}
+            <span className={`key-progress ${stats.robotHasKey ? "found" : ""}`}><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="8" r="4"/><path d="m11 11 9 9m-4-4 3-3m-6 0 3-3"/></svg> {stats.robotHasKey ? "Key found" : "Find key"}</span>
           </div>
           <div className="objective mission-timer"><small>TIME</small><strong>{formatTime(stats.elapsedMs)}</strong></div>
           <div className="player-status ninja-status">
-            {stats.ninjaHasKey && <span className="key-status ninja-key"><i aria-hidden="true" /> KEY</span>}
+            <span className={`key-progress ${stats.ninjaHasKey ? "found" : ""}`}><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="8" r="4"/><path d="m11 11 9 9m-4-4 3-3m-6 0 3-3"/></svg> {stats.ninjaHasKey ? "Key found" : "Find key"}</span>
             <span className="gem-count"><span aria-label={`${stats.ninja} of 3 gems`}>{[0,1,2].map(i => <i key={i} className={i < stats.ninja ? "gem-slot collected" : "gem-slot"}>◆</i>)}</span></span>
             <div className="hud-name"><strong>Ninja</strong></div>
             <img className="hud-avatar" src="/sprites/ninja-portrait.png" alt="" />
@@ -2250,10 +2253,11 @@ export default function App() {
             <div className="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title">
               <section className="pause-panel">
                 <span className="pause-kicker">HALLOWAY TOY WORKS / MISSION 01</span>
-                <h2 id="pause-title">Ⅱ PAUSED</h2>
-                <div className="help-controls"><p><strong>Bolt</strong> · A / D to move · W to jump · Q to build</p><p><strong>Ninja</strong> · ← / → to move · ↑ to jump or climb · ↓ to climb down</p><p>Collect your own key, then reach both exit doors together. Build from the edge of a gap or your newest block.</p></div>
+                <h2 id="pause-title">{helpOpen ? "How to play" : "Ⅱ PAUSED"}</h2>
+                {helpOpen && <div className="help-controls"><p><strong>Bolt</strong> · A / D to move · W to jump · Q to build</p><p><strong>Ninja</strong> · ← / → to move · ↑ to jump or climb · ↓ to climb down</p><p>Collect your own key, then reach both exit doors together. Build from the edge of a gap or your newest block.</p></div>}
                 <div className="pause-actions">
-                  <button className="pause-primary" onClick={() => { sound.play('ui'); setPauseOpen(false) }}>▶ RESUME MISSION</button>
+                  <button className="pause-primary" onClick={() => { sound.play('ui'); setPauseOpen(false) }}>{helpOpen ? "Back to game" : "▶ RESUME MISSION"}</button>
+                  {!helpOpen && <button onClick={() => { setHelpOpen(true) }}>How to play</button>}
                   <button onClick={() => { sound.play('ui'); reset(); sound.start() }}>↻ RESTART MISSION</button>
                   <button onClick={() => { sound.play('ui'); setPauseOpen(false); setStoryOpen(true) }}>▤ READ STORY</button>
                   <button onClick={toggleSound}>{soundEnabled ? '♪ MUTE AUDIO' : '♪ ENABLE AUDIO'}</button>
@@ -2376,7 +2380,7 @@ export default function App() {
           <div className="control-shortcuts"><span><Key>A</Key><Key>D</Key> Move</span><span><Key>W</Key> Jump</span><span><Key>Q</Key> Build</span></div>
         </div>
         <div className="control-card ninja-card">
-          <div className="control-shortcuts"><span><Key>←</Key><Key>→</Key> Move</span><span><Key>↑</Key> Jump / climb</span><span><Key>↓</Key> Down</span></div>
+          <div className="control-shortcuts"><span><Key>←</Key><Key>→</Key> Move</span><span><Key>↑</Key> Jump / climb</span><span><Key>↓</Key> Climb down</span></div>
           <div className="control-identity"><small>Ninja</small><strong>Climber</strong></div>
           <img className="control-avatar" src="/sprites/ninja-portrait.png" alt="" />
         </div>
