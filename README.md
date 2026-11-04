@@ -1,59 +1,38 @@
-# Ninja & Bolt — Block & Blade
+# Ninja & Bolt — Figma Make Sync
 
-A two-player cooperative Canvas platform game. This repository is synchronized to the code exported from the **UX Kids Concrete** Figma Make game, with minor TypeScript syntax repairs and a standalone Vite configuration.
+This repository mirrors the updated **UX Kids Concrete** Figma Make game, adapted for standalone React/TypeScript/Vite deployment. Synced November 3, 2026.
 
-## Play locally
+## Features included
+
+- Procedurally illustrated abandoned toy/robot factory, animated machinery and windows, hanging toys and industrial catwalks.
+- Two original character animation atlases from Figma Make.
+- Two separate collectible keys: Ninja's fixed key and Robot's lift-mounted key. Each character needs their key before their own exit will register.
+- Updated upper-tier platform geometry and gem positions.
+- Shared timer, six gems, scoring, win/failure results, and local personal best.
+- Existing GitHub-specific jump improvement retained: 550 velocity, ledge-corner handling, 110ms coyote time, 130ms jump buffer.
+
+## Run locally
 
 Requires Node.js 22+.
 
-```sh
+```bash
 npm install
 npm run dev
 ```
 
-Open the URL printed by Vite. Production: `npm run build`, preview: `npm run preview`.
+Open the URL printed by Vite. Run `npm test`, `npx tsc --noEmit`, and `npm run build` to validate.
 
 ## Controls
 
-- **Robot/Bolt:** A/D move, W jump, Q build blocks.
-- **Ninja:** Left/Right move, Up jump/climb, Down descend when climbing.
-- **R:** Restart the level.
+- **Robot**: A/D move; W jump; Q place bridge blocks.
+- **Ninja**: left/right arrows move; up arrow jumps or climbs walls; down arrow descends while climbing.
+- **R**: reset level.
 
-Both players must reach their respective exit pods to win. The shared score rewards mission completion (200), six collectible gems (100 each), and speed (up to 200). The on-screen clock starts with the first movement and stops upon completion. Best score is stored in the browser.
+Both players must collect their own key and reach their respective exit doors to finish together.
 
-## Platforming feel
-
-The jump has increased vertical clearance so both characters can comfortably reach the 88–90px ledges. Near platform tops, corner collision handling no longer snaps a rising character backward. There is also a brief 110ms coyote window after walking off a ledge and a 130ms jump buffer before landing. Holding jump does not repeatedly trigger another jump on landing.
-
-Run the platform physics regression tests with `npm test`. They cover approaches from both directions for each character, ledge landings, jump buffering, platform undersides, and moving lifts.
-
-## Character assets
-
-The original Figma sprite atlases are committed under `public/sprites/`. Each image was copied byte-for-byte from Figma Make: 17 frames per character, 180×220 pixels per frame. `src/App.tsx` uses them for idle, run, jump, climb (Ninja), and build (Robot) animations.
-
-## Source
+## Design source
 
 - Figma Make: https://www.figma.com/make/PaiJvjgleFgvh6V4BbfIng/UX-Kids-Concrete
 - GitHub: https://github.com/mail2tarunv-cpu/ninja-and-bolt
 
-The Figma Make design is the source for this snapshot; future changes to it are **not** synced to GitHub automatically.
-
-## Fantasy ruins visual pass
-
-The generated fantasy artwork is now integrated as a cosmetic Canvas renderer in `src/art.ts`.
-It paints distant misty aqueducts and waterfalls, a subdued midground, floral
-foreground framing, moss-covered stone platforms, warm glowing crystals, two
-shrine exits, ornate platforms and switches, ruin lanterns, and spike hazards.
-Both Ninja and Robot use normalized 17-frame atlases rebuilt from the new
-storybook character art. The gameplay collision rectangles, player inputs,
-existing jump/coyote/buffer physics, score, and game rules are unchanged.
-
-Artwork is committed in `public/art/`. It loads asynchronously and supports
-simple shape fallbacks until the assets load. No hosted image URLs or third-party
-runtime services are required. Use `npm test` to run both art integrity and
-existing physics regression tests.
-
-The image-generation sheets were unevenly spaced, so unreliable frames were
-replaced with clean pose variants instead of shipping clipped or wall-baked
-animation frames. The result is a pragmatic first playable art pass, not a
-production-ready hand-authored tileset.
+The older fantasy art pipeline (`src/art.ts` and `public/art/`) is retained as archival code/assets but is no longer used by the live game. This is a snapshot, not an automatic Figma↔GitHub sync.

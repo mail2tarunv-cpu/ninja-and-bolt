@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { GRAVITY, moveWithPlatformCollisions, updateJumpAssist } from "./physics"
-import {
-  loadGameArt, drawStorybookBackground, drawStonePlatform,
-  drawStorybookHazard, drawStorybookLift, drawStorybookLever,
-  drawStorybookButton, drawStorybookBlock, drawStorybookGem,
-  drawStorybookExit, drawStorybookDecor, drawStorybookForeground,
-  type GameArt,
-} from "./art"
 
 const WORLD = { width: 1280, height: 720 }
 const ROBOT_START = { x: 78, y: 586 }
 const NINJA_START = { x: 152, y: 586 }
 const GROUND_WATER = { x: 300, y: 650, w: 256, h: 70 }
 const QUICKSAND = { x: 574, y: 478, w: 192, h: 28 }
+const ROBOT_KEY_SIZE = 28
+const NINJA_KEY = { x: 292, y: 258, w: 28, h: 28 }
 const LIFT_HEIGHT = 28
 const MAX_BLOCKS = 7
 const BUILD_ZONES = [
@@ -49,6 +44,10 @@ type Player = {
 type Block = { x: number; y: number; w: number; h: number }
 type Rect = { x: number; y: number; w: number; h: number }
 type Gem = Rect & { role: Role; collected: boolean }
+const EXIT_DOORS: Record<Role, Rect> = {
+  ninja: { x: 1090, y: 48, w: 66, h: 82 },
+  robot: { x: 1162, y: 48, w: 66, h: 82 },
+}
 type MissionResult = {
   elapsedMs: number
   collectedGems: number
@@ -67,8 +66,8 @@ type AnimationDefinition = {
 
 const SPRITE_CELL = { width: 180, height: 220, baseline: 208 }
 const SPRITE_PATHS: Record<Role, string> = {
-  robot: "/art/robot-atlas.png",
-  ninja: "/art/ninja-atlas.png",
+  robot: "/sprites/robot-atlas.png",
+  ninja: "/sprites/ninja-atlas.png",
 }
 const CHARACTER_ANIMATIONS: Record<Role, Partial<Record<CharacterAnimation, AnimationDefinition>>> =
   {
@@ -95,6 +94,8 @@ type Game = {
   leverOn: boolean
   exitLiftButton: boolean
   topLiftButton: boolean
+  robotHasKey: boolean
+  ninjaHasKey: boolean
   liftY: number
   exitLiftY: number
   won: boolean
@@ -121,7 +122,7 @@ const solids: Rect[] = [
   { x: 766, y: 478, w: 310, h: 28 },
   { x: 140, y: 388, w: 110, h: 24 },
   { x: 280, y: 300, w: 976, h: 28 },
-  { x: 650, y: 130, w: 180, h: 28 },
+  { x: 290, y: 130, w: 540, h: 28 },
   { x: 927, y: 130, w: 353, h: 28 },
   { x: 0, y: 0, w: 24, h: 720 },
   { x: 1256, y: 0, w: 24, h: 720 },
@@ -177,12 +178,14 @@ const resetGame = (): Game => ({
     { x: 720, y: 70, w: 24, h: 24, role: "ninja", collected: false },
     { x: 710, y: 416, w: 24, h: 24, role: "robot", collected: false },
     { x: 370, y: 238, w: 24, h: 24, role: "robot", collected: false },
-    { x: 1112, y: 426, w: 24, h: 24, role: "ninja", collected: false },
+    { x: 520, y: 238, w: 24, h: 24, role: "ninja", collected: false },
   ],
   keys: new Set(),
   leverOn: false,
   exitLiftButton: false,
   topLiftButton: false,
+  robotHasKey: false,
+  ninjaHasKey: false,
   liftY: 478,
   exitLiftY: 130,
   won: false,
@@ -204,6 +207,13 @@ const resetGame = (): Game => ({
 
 const overlaps = (a: Rect, b: Rect) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+
+const getRobotKeyRect = (game: Game): Rect => ({
+  x: 1076 + (97 - ROBOT_KEY_SIZE) / 2,
+  y: game.liftY - ROBOT_KEY_SIZE,
+  w: ROBOT_KEY_SIZE,
+  h: ROBOT_KEY_SIZE,
+})
 
 const pointOnRect = (x: number, y: number, rect: Rect) =>
   x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h
@@ -261,27 +271,84 @@ function roundedRect(
 }
 
 function drawPlatform(ctx: CanvasRenderingContext2D, rect: Rect) {
-  const gradient = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h)
-  gradient.addColorStop(0, "#36324f")
-  gradient.addColorStop(0.14, "#1a1b31")
-  gradient.addColorStop(1, "#101326")
-  ctx.fillStyle = gradient
-  ctx.shadowColor = "rgba(160, 101, 255, .28)"
-  ctx.shadowBlur = 7
-  roundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 5)
-  ctx.fill()
-  ctx.shadowBlur = 0
-  ctx.strokeStyle = "#7655a8"
-  ctx.lineWidth = 2
-  ctx.stroke()
-  ctx.strokeStyle = "rgba(161, 130, 215, .2)"
-  ctx.lineWidth = 1
-  for (let x = rect.x + 38; x < rect.x + rect.w; x += 52) {
-    ctx.beginPath()
-    ctx.moveTo(x, rect.y + 4)
-    ctx.lineTo(x - 9, rect.y + rect.h - 4)
-    ctx.stroke()
+  const isHorizontalCatwalk = rect.h <= 28 && rect.w >= 90
+  const metal = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h)
+  metal.addColorStop(0, "#444b4c")
+  metal.addColorStop(0.16, "#2c3335")
+  metal.addColorStop(1, "#171d1f")
+
+  ctx.save()
+  if (isHorizontalCatwalk) {
+    ctx.shadowColor = "rgba(255, 174, 91, .28)"
+    ctx.shadowBlur = 10
   }
+  ctx.fillStyle = metal
+  ctx.strokeStyle = "#080d0f"
+  ctx.lineWidth = 2
+  roundedRect(ctx, rect.x, rect.y, rect.w, rect.h, 3)
+  ctx.fill()
+  ctx.stroke()
+  ctx.shadowBlur = 0
+
+  ctx.fillStyle = isHorizontalCatwalk ? "#776a55" : "#586164"
+  ctx.fillRect(rect.x + 2, rect.y + 2, rect.w - 4, 4)
+  ctx.fillStyle = "rgba(0, 0, 0, .34)"
+  ctx.fillRect(rect.x + 2, rect.y + rect.h - 5, rect.w - 4, 3)
+
+  ctx.strokeStyle = "rgba(183, 94, 45, .46)"
+  ctx.lineWidth = 1
+  for (let x = rect.x + 31; x < rect.x + rect.w - 8; x += 67) {
+    const streakLength = 5 + ((x + rect.y) % 11)
+    ctx.beginPath()
+    ctx.moveTo(x, rect.y + 5)
+    ctx.lineTo(x - 1, Math.min(rect.y + rect.h - 3, rect.y + streakLength))
+    ctx.stroke()
+    ctx.strokeStyle = "rgba(98, 48, 27, .34)"
+    ctx.beginPath()
+    ctx.moveTo(x + 2, rect.y + 6)
+    ctx.lineTo(x + 4, Math.min(rect.y + rect.h - 3, rect.y + streakLength + 4))
+    ctx.stroke()
+    ctx.strokeStyle = "rgba(183, 94, 45, .46)"
+  }
+
+  for (let x = rect.x + 14; x < rect.x + rect.w - 8; x += 32) {
+    ctx.fillStyle = "#6d7778"
+    ctx.beginPath()
+    ctx.arc(x, rect.y + 8, 2.2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = "rgba(188, 103, 54, .45)"
+    ctx.beginPath()
+    ctx.arc(x + 1, rect.y + 9, 1, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  if (isHorizontalCatwalk) {
+    const railTop = rect.y - 20
+    ctx.strokeStyle = "#323a3c"
+    ctx.lineWidth = 2.5
+    ctx.beginPath()
+    ctx.moveTo(rect.x + 5, railTop)
+    ctx.lineTo(rect.x + rect.w - 5, railTop)
+    ctx.moveTo(rect.x + 5, rect.y - 10)
+    ctx.lineTo(rect.x + rect.w - 5, rect.y - 10)
+    for (let x = rect.x + 7; x <= rect.x + rect.w - 7; x += 58) {
+      ctx.moveTo(x, rect.y)
+      ctx.lineTo(x, railTop)
+    }
+    ctx.moveTo(rect.x + rect.w - 7, rect.y)
+    ctx.lineTo(rect.x + rect.w - 7, railTop)
+    ctx.stroke()
+
+    ctx.strokeStyle = "rgba(165, 77, 38, .5)"
+    ctx.lineWidth = 1
+    for (let x = rect.x + 36; x < rect.x + rect.w; x += 116) {
+      ctx.beginPath()
+      ctx.moveTo(x, railTop)
+      ctx.lineTo(x + 3, rect.y - 7)
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
 }
 
 function drawLift(
@@ -289,19 +356,91 @@ function drawLift(
   x: number,
   y: number,
   w: number,
+  cableTop: number,
 ) {
   ctx.save()
-  ctx.shadowColor = "#60d9dc"
-  ctx.shadowBlur = 14
-  ctx.fillStyle = "#60d9dc"
-  roundedRect(ctx, x, y, w, LIFT_HEIGHT, 5)
-  ctx.fill()
-  ctx.strokeStyle = "#60d9dc"
-  ctx.lineWidth = 2
+
+  const cableXs = [x + 5, x + 15, x + w - 15, x + w - 5]
+  cableXs.forEach((cableX, index) => {
+    ctx.strokeStyle = index === 0 || index === 3 ? "#263235" : "#3d4a4d"
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(cableX, cableTop)
+    ctx.lineTo(cableX, y - 18)
+    ctx.stroke()
+
+    ctx.strokeStyle = "rgba(99, 119, 121, .7)"
+    ctx.lineWidth = 1.5
+    for (let linkY = cableTop + 5; linkY < y - 20; linkY += 10) {
+      ctx.beginPath()
+      ctx.ellipse(
+        cableX,
+        linkY,
+        2.5,
+        4,
+        index % 2 === 0 ? 0.2 : -0.2,
+        0,
+        Math.PI * 2,
+      )
+      ctx.stroke()
+    }
+  })
+
+  ctx.strokeStyle = "#354144"
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(x + 4, y)
+  ctx.lineTo(x + 4, y - 20)
+  ctx.lineTo(x + w - 4, y - 20)
+  ctx.lineTo(x + w - 4, y)
+  ctx.moveTo(x + 4, y - 10)
+  ctx.lineTo(x + w - 4, y - 10)
   ctx.stroke()
+
+  ctx.strokeStyle = "rgba(167, 82, 42, .48)"
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(x + 7, y - 19)
+  ctx.lineTo(x + 19, y - 11)
+  ctx.moveTo(x + w - 31, y - 19)
+  ctx.lineTo(x + w - 19, y - 11)
+  ctx.stroke()
+
+  const plate = ctx.createLinearGradient(0, y, 0, y + LIFT_HEIGHT)
+  plate.addColorStop(0, "#424c4f")
+  plate.addColorStop(0.22, "#252d30")
+  plate.addColorStop(1, "#111719")
+  ctx.fillStyle = plate
+  ctx.strokeStyle = "#080d0f"
+  ctx.lineWidth = 2
+  roundedRect(ctx, x, y, w, LIFT_HEIGHT, 3)
+  ctx.fill()
+  ctx.stroke()
+
+  ctx.strokeStyle = "rgba(105, 121, 123, .5)"
+  ctx.lineWidth = 1
+  for (let deckX = x + 11; deckX < x + w - 7; deckX += 14) {
+    ctx.beginPath()
+    ctx.moveTo(deckX, y + 5)
+    ctx.lineTo(deckX - 5, y + LIFT_HEIGHT - 7)
+    ctx.stroke()
+  }
+
+  ctx.fillStyle = "#778385"
+  ;[x + 8, x + w - 8].forEach((rivetX) => {
+    ctx.beginPath()
+    ctx.arc(rivetX, y + 7, 2, 0, Math.PI * 2)
+    ctx.fill()
+  })
+
+  ctx.shadowColor = "#5ce1e6"
+  ctx.shadowBlur = 16
+  ctx.fillStyle = "#5ce1e6"
+  roundedRect(ctx, x + 7, y + LIFT_HEIGHT - 6, w - 14, 4, 2)
+  ctx.fill()
   ctx.shadowBlur = 0
-  ctx.fillStyle = "rgba(232, 255, 255, .35)"
-  ctx.fillRect(x + 6, y + 5, w - 12, 2)
+  ctx.fillStyle = "rgba(219, 255, 255, .75)"
+  ctx.fillRect(x + 12, y + LIFT_HEIGHT - 5, w - 24, 1)
   ctx.restore()
 }
 
@@ -356,9 +495,8 @@ function drawCharacterSprite(
   const definition = CHARACTER_ANIMATIONS[player.role][animation]
   if (!definition) return
   const frame = getAnimationFrame(player, definition, now)
-  // Enlarge the animated silhouettes without changing player colliders.
-  const drawWidth = player.role === "robot" ? 77 : 73
-  const drawHeight = 88
+  const drawWidth = player.role === "robot" ? 66 : 62
+  const drawHeight = 78
   const baselineOffset =
     drawHeight * (SPRITE_CELL.baseline / SPRITE_CELL.height)
 
@@ -390,6 +528,129 @@ function drawGem(ctx: CanvasRenderingContext2D, gem: Gem) {
   ctx.fillRect(-9, -9, 18, 18)
   ctx.fillStyle = "rgba(255,255,255,.7)"
   ctx.fillRect(-7, -7, 6, 6)
+  ctx.restore()
+}
+
+function drawKey(
+  ctx: CanvasRenderingContext2D,
+  key: Rect,
+  color = "#ffd65e",
+  highlight = "#fff1aa",
+) {
+  const x = key.x
+  const y = key.y
+  ctx.save()
+  ctx.translate(x + 14, y + 14)
+  ctx.rotate(-0.22)
+  ctx.shadowColor = color
+  ctx.shadowBlur = 14
+  ctx.strokeStyle = color
+  ctx.lineWidth = 6
+  ctx.lineCap = "round"
+  ctx.beginPath()
+  ctx.arc(-6, -2, 7, 0, Math.PI * 2)
+  ctx.moveTo(0, 3)
+  ctx.lineTo(12, 14)
+  ctx.moveTo(7, 9)
+  ctx.lineTo(12, 4)
+  ctx.moveTo(11, 13)
+  ctx.lineTo(16, 8)
+  ctx.stroke()
+  ctx.shadowBlur = 0
+  ctx.strokeStyle = highlight
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(-6, -2, 3, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawExitDoor(
+  ctx: CanvasRenderingContext2D,
+  door: Rect,
+  role: Role,
+  locked: boolean,
+  active: boolean,
+  atlas?: HTMLImageElement,
+) {
+  const roleColor = role === "robot" ? "#ffcf4a" : "#b794ff"
+  const frameColor = locked ? "#667487" : roleColor
+  const centerX = door.x + door.w / 2
+  const panel = ctx.createLinearGradient(
+    door.x,
+    door.y,
+    door.x,
+    door.y + door.h,
+  )
+  panel.addColorStop(0, active ? "#233b52" : "#14243a")
+  panel.addColorStop(1, "#09111f")
+
+  ctx.save()
+  ctx.shadowColor = frameColor
+  ctx.shadowBlur = active ? 20 : locked ? 3 : 9
+  ctx.fillStyle = panel
+  ctx.strokeStyle = frameColor
+  ctx.lineWidth = 3
+  roundedRect(ctx, door.x, door.y, door.w, door.h, 5)
+  ctx.fill()
+  ctx.stroke()
+  ctx.shadowBlur = 0
+
+  ctx.strokeStyle = locked ? "rgba(117, 134, 153, .35)" : `${roleColor}55`
+  ctx.lineWidth = 1
+  ctx.strokeRect(door.x + 7, door.y + 8, door.w - 14, door.h - 15)
+
+  if (atlas) {
+    const drawWidth = role === "robot" ? 40 : 37
+    ctx.globalAlpha = locked ? 0.48 : 0.92
+    ctx.drawImage(
+      atlas,
+      0,
+      0,
+      SPRITE_CELL.width,
+      SPRITE_CELL.height,
+      centerX - drawWidth / 2,
+      door.y + 12,
+      drawWidth,
+      49,
+    )
+    ctx.globalAlpha = 1
+  } else {
+    ctx.strokeStyle = frameColor
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.arc(centerX, door.y + 28, 8, 0, Math.PI * 2)
+    ctx.moveTo(centerX, door.y + 36)
+    ctx.lineTo(centerX, door.y + 54)
+    ctx.stroke()
+  }
+
+  ctx.fillStyle = locked ? "#8b98a8" : roleColor
+  ctx.font = "800 8px Inter, sans-serif"
+  ctx.textAlign = "center"
+  ctx.fillText(role.toUpperCase(), centerX, door.y - 8)
+
+  if (locked) {
+    const lockX = door.x + door.w - 17
+    const lockY = door.y + door.h - 24
+    ctx.strokeStyle = "#b9c3ce"
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.arc(lockX, lockY, 7, Math.PI, 0)
+    ctx.stroke()
+    ctx.fillStyle = "#8b98a8"
+    roundedRect(ctx, lockX - 9, lockY, 18, 15, 3)
+    ctx.fill()
+    ctx.fillStyle = "#263240"
+    ctx.beginPath()
+    ctx.arc(lockX, lockY + 6, 2, 0, Math.PI * 2)
+    ctx.fill()
+  } else {
+    ctx.fillStyle = roleColor
+    ctx.beginPath()
+    ctx.arc(door.x + door.w - 11, door.y + door.h / 2, 2.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
   ctx.restore()
 }
 
@@ -428,14 +689,139 @@ function drawFloorButton(
   ctx.restore()
 }
 
-function drawSandHazard(ctx: CanvasRenderingContext2D, hazard: Rect) {
-  const sand = ctx.createLinearGradient(0, hazard.y, 0, hazard.y + hazard.h)
-  sand.addColorStop(0, "#e6b64c")
-  sand.addColorStop(0.35, "#aa7028")
-  sand.addColorStop(1, "#68401f")
-  ctx.fillStyle = sand
+function drawToyPit(
+  ctx: CanvasRenderingContext2D,
+  hazard: Rect,
+  now: number,
+  phase: number,
+) {
+  const pit = ctx.createLinearGradient(0, hazard.y, 0, hazard.y + hazard.h)
+  pit.addColorStop(0, "#d9a93d")
+  pit.addColorStop(0.34, "#9a6828")
+  pit.addColorStop(1, "#4d301c")
+  ctx.fillStyle = pit
   ctx.fillRect(hazard.x, hazard.y, hazard.w, hazard.h)
-  ctx.strokeStyle = "#f3cc68"
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(hazard.x, hazard.y - 18, hazard.w, hazard.h + 18)
+  ctx.clip()
+
+  const sinkingOffset = (piecePhase: number, amount = 5) =>
+    ((Math.sin(now / 1900 + phase + piecePhase) + 1) / 2) * amount
+  const toyGold = "#dba943"
+  const toyLight = "#f0cf72"
+  const toyDark = "#785027"
+
+  // Broken doll arm and hand.
+  const armX = hazard.x + hazard.w * 0.17
+  const armY = hazard.y - 7 + sinkingOffset(0.2, 7)
+  ctx.save()
+  ctx.translate(armX, armY)
+  ctx.rotate(-0.32)
+  ctx.strokeStyle = toyGold
+  ctx.lineWidth = 9
+  ctx.lineCap = "round"
+  ctx.beginPath()
+  ctx.moveTo(-17, 6)
+  ctx.lineTo(13, -1)
+  ctx.stroke()
+  ctx.fillStyle = toyLight
+  ctx.beginPath()
+  ctx.arc(17, -2, 6, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = toyLight
+  ctx.lineWidth = 2
+  for (let finger = -1; finger <= 1; finger += 1) {
+    ctx.beginPath()
+    ctx.moveTo(19, -4 + finger * 3)
+    ctx.lineTo(26, -6 + finger * 4)
+    ctx.stroke()
+  }
+  ctx.restore()
+
+  // Loose train wheel with worn spokes.
+  const wheelX = hazard.x + hazard.w * 0.4
+  const wheelY = hazard.y + 3 + sinkingOffset(1.3, 5)
+  ctx.save()
+  ctx.translate(wheelX, wheelY)
+  ctx.rotate(now / 12000 + phase)
+  ctx.strokeStyle = toyDark
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.arc(0, 0, 13, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.strokeStyle = toyLight
+  ctx.lineWidth = 2
+  for (let spoke = 0; spoke < 6; spoke += 1) {
+    const angle = (spoke / 6) * Math.PI * 2
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(Math.cos(angle) * 10, Math.sin(angle) * 10)
+    ctx.stroke()
+  }
+  ctx.fillStyle = toyDark
+  ctx.beginPath()
+  ctx.arc(0, 0, 4, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+
+  // Bent tin soldier.
+  const soldierX = hazard.x + hazard.w * 0.66
+  const soldierY = hazard.y - 17 + sinkingOffset(2.5, 8)
+  ctx.save()
+  ctx.translate(soldierX, soldierY)
+  ctx.rotate(0.12)
+  ctx.fillStyle = toyDark
+  ctx.fillRect(-8, 8, 16, 18)
+  ctx.fillStyle = toyGold
+  ctx.fillRect(-10, 6, 20, 6)
+  ctx.beginPath()
+  ctx.arc(0, 2, 7, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillRect(-8, -8, 16, 8)
+  ctx.fillStyle = toyLight
+  ctx.fillRect(-6, -10, 12, 3)
+  ctx.strokeStyle = toyGold
+  ctx.lineWidth = 4
+  ctx.beginPath()
+  ctx.moveTo(-5, 24)
+  ctx.lineTo(-9, 34)
+  ctx.moveTo(5, 24)
+  ctx.lineTo(10, 33)
+  ctx.stroke()
+  ctx.restore()
+
+  // Scattered wooden blocks, half buried at different depths.
+  const blocks = [
+    { x: 0.29, y: 9, size: 17, angle: -0.16, delay: 3.2 },
+    { x: 0.53, y: 13, size: 14, angle: 0.2, delay: 4.1 },
+    { x: 0.79, y: 7, size: 18, angle: -0.08, delay: 5.2 },
+    { x: 0.91, y: 15, size: 13, angle: 0.28, delay: 6.3 },
+  ]
+  blocks.forEach((block, index) => {
+    const x = hazard.x + hazard.w * block.x
+    const y =
+      hazard.y + block.y + sinkingOffset(block.delay, index % 2 === 0 ? 5 : 3)
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(block.angle)
+    ctx.fillStyle = index % 2 === 0 ? toyGold : "#bc8432"
+    ctx.strokeStyle = toyLight
+    ctx.lineWidth = 1.5
+    ctx.fillRect(-block.size / 2, -block.size / 2, block.size, block.size)
+    ctx.strokeRect(-block.size / 2, -block.size / 2, block.size, block.size)
+    ctx.fillStyle = "rgba(92, 54, 25, .65)"
+    ctx.font = `800 ${Math.max(8, block.size - 6)}px Inter, sans-serif`
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(index % 2 === 0 ? "B" : "A", 0, 1)
+    ctx.restore()
+  })
+
+  ctx.restore()
+
+  ctx.strokeStyle = "#efc760"
   ctx.lineWidth = 3
   ctx.beginPath()
   ctx.moveTo(hazard.x, hazard.y + 5)
@@ -443,39 +829,717 @@ function drawSandHazard(ctx: CanvasRenderingContext2D, hazard: Rect) {
     ctx.quadraticCurveTo(x + 5, hazard.y - 2, x + 10, hazard.y + 5)
   }
   ctx.stroke()
-  ctx.fillStyle = "rgba(255, 225, 145, .48)"
-  for (let x = hazard.x + 18; x < hazard.x + hazard.w; x += 38) {
+}
+
+function drawFactoryWindow(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const glass = ctx.createLinearGradient(x, y, x, y + height)
+  glass.addColorStop(0, "rgba(242, 190, 112, .5)")
+  glass.addColorStop(0.55, "rgba(166, 113, 66, .34)")
+  glass.addColorStop(1, "rgba(74, 54, 42, .48)")
+
+  ctx.save()
+  ctx.fillStyle = "#080f19"
+  ctx.fillRect(x - 10, y - 10, width + 20, height + 20)
+  ctx.fillStyle = glass
+  ctx.fillRect(x, y, width, height)
+
+  const columnWidth = width / 3
+  const rowHeight = height / 4
+  ctx.strokeStyle = "rgba(93, 112, 126, .58)"
+  ctx.lineWidth = 6
+  for (let column = 1; column < 3; column += 1) {
     ctx.beginPath()
-    ctx.arc(x, hazard.y + Math.min(18, hazard.h * 0.62), 3, 0, Math.PI * 2)
+    ctx.moveTo(x + column * columnWidth, y)
+    ctx.lineTo(x + column * columnWidth, y + height)
+    ctx.stroke()
+  }
+  for (let row = 1; row < 4; row += 1) {
+    ctx.beginPath()
+    ctx.moveTo(x, y + row * rowHeight)
+    ctx.lineTo(x + width, y + row * rowHeight)
+    ctx.stroke()
+  }
+
+  ctx.fillStyle = "#070d16"
+  ctx.beginPath()
+  ctx.moveTo(x + columnWidth, y)
+  ctx.lineTo(x + columnWidth * 1.72, y)
+  ctx.lineTo(x + columnWidth * 1.42, y + rowHeight * 0.48)
+  ctx.lineTo(x + columnWidth * 1.12, y + rowHeight * 0.28)
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(x + width, y + rowHeight * 1.05)
+  ctx.lineTo(x + width, y + rowHeight * 2)
+  ctx.lineTo(x + width - columnWidth * 0.52, y + rowHeight * 1.62)
+  ctx.closePath()
+  ctx.fill()
+
+  ctx.strokeStyle = "rgba(255, 221, 162, .4)"
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(x + columnWidth * 1.72, y)
+  ctx.lineTo(x + columnWidth * 1.48, y + rowHeight * 0.75)
+  ctx.lineTo(x + columnWidth * 1.82, y + rowHeight * 1.12)
+  ctx.moveTo(x + width - columnWidth * 0.52, y + rowHeight * 1.62)
+  ctx.lineTo(x + width - columnWidth * 0.86, y + rowHeight * 1.24)
+  ctx.lineTo(x + width - columnWidth * 0.72, y + rowHeight * 0.78)
+  ctx.stroke()
+
+  ctx.strokeStyle = "#25303a"
+  ctx.lineWidth = 8
+  ctx.strokeRect(x - 4, y - 4, width + 8, height + 8)
+  ctx.strokeStyle = "rgba(117, 132, 140, .25)"
+  ctx.lineWidth = 2
+  ctx.strokeRect(x, y, width, height)
+  ctx.restore()
+}
+
+function drawIvyLeaf(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  angle: number,
+  scale = 1,
+) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(angle)
+  ctx.scale(scale, scale)
+  ctx.fillStyle = "#4f6f3b"
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.bezierCurveTo(3, -5, 9, -4, 10, 0)
+  ctx.bezierCurveTo(7, 5, 2, 5, 0, 0)
+  ctx.fill()
+  ctx.strokeStyle = "rgba(143, 167, 91, .48)"
+  ctx.lineWidth = 0.8
+  ctx.beginPath()
+  ctx.moveTo(1, 0)
+  ctx.lineTo(8, 0)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawHangingIvyChain(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  length: number,
+  now: number,
+  phase: number,
+) {
+  ctx.save()
+  const sway = Math.sin(now / 3200 + phase) * 3
+  ctx.strokeStyle = "#343c3c"
+  ctx.lineWidth = 2
+  for (let y = 20; y < length; y += 10) {
+    const chainX = x + (y / length) * sway
+    ctx.beginPath()
+    ctx.ellipse(chainX, y, 3, 5, y % 20 === 0 ? 0.2 : -0.2, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+
+  ctx.strokeStyle = "rgba(57, 88, 45, .9)"
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(x - 2, 20)
+  for (let y = 30; y <= length; y += 12) {
+    const chainX = x + (y / length) * sway
+    ctx.lineTo(chainX + Math.sin(y / 19 + phase) * 4, y)
+  }
+  ctx.stroke()
+
+  for (let y = 44; y < length; y += 26) {
+    const side = Math.floor(y / 26) % 2 === 0 ? -1 : 1
+    const chainX = x + (y / length) * sway
+    drawIvyLeaf(
+      ctx,
+      chainX + side * 3,
+      y,
+      side > 0 ? 0.25 : Math.PI - 0.25,
+      0.72 + ((y + phase * 10) % 12) / 30,
+    )
+  }
+  ctx.restore()
+}
+
+function drawFallingIvyBits(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  now: number,
+  phase: number,
+) {
+  ctx.save()
+  for (let index = 0; index < 9; index += 1) {
+    const progress = (now / 1550 + index * 0.137 + phase) % 1
+    const startX = x + ((index * 37 + phase * 19) % width)
+    const leafX =
+      startX + Math.sin(progress * Math.PI * 4 + index) * (8 + (index % 3) * 3)
+    const leafY = y - 42 + progress * 116
+    ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.8
+    drawIvyLeaf(
+      ctx,
+      leafX,
+      leafY,
+      progress * Math.PI * 3 + index,
+      0.45 + (index % 3) * 0.12,
+    )
+  }
+  ctx.restore()
+}
+
+function drawPeelingMural(ctx: CanvasRenderingContext2D) {
+  const x = 248
+  const y = 184
+  const width = 235
+  const height = 92
+
+  ctx.save()
+  ctx.translate(0, 170)
+  ctx.beginPath()
+  ctx.rect(x, y, width, height)
+  ctx.clip()
+  ctx.fillStyle = "rgba(229, 205, 154, .18)"
+  ctx.fillRect(x, y, width, height)
+
+  const balloons = [
+    { x: 279, y: 208, color: "rgba(231, 73, 66, .7)" },
+    { x: 310, y: 220, color: "rgba(66, 156, 215, .68)" },
+    { x: 340, y: 203, color: "rgba(247, 187, 55, .72)" },
+  ]
+  balloons.forEach((balloon, index) => {
+    ctx.fillStyle = balloon.color
+    ctx.beginPath()
+    ctx.ellipse(
+      balloon.x,
+      balloon.y,
+      11,
+      15,
+      index % 2 ? 0.12 : -0.12,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+    ctx.strokeStyle = "rgba(224, 208, 172, .42)"
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(balloon.x, balloon.y + 15)
+    ctx.quadraticCurveTo(balloon.x + (index - 1) * 5, balloon.y + 30, 311, 270)
+    ctx.stroke()
+  })
+
+  ctx.fillStyle = "rgba(246, 191, 45, .64)"
+  ctx.beginPath()
+  ctx.arc(411, 229, 35, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = "rgba(58, 48, 38, .76)"
+  ctx.beginPath()
+  ctx.arc(399, 219, 3.5, 0, Math.PI * 2)
+  ctx.arc(423, 219, 3.5, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = "rgba(76, 49, 33, .8)"
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.arc(411, 228, 21, 0.18, Math.PI - 0.18)
+  ctx.stroke()
+
+  ctx.fillStyle = "#151c23"
+  const peeledAreas = [
+    [248, 184, 49, 25],
+    [286, 237, 38, 42],
+    [326, 184, 35, 23],
+    [358, 249, 42, 29],
+    [421, 183, 62, 27],
+    [442, 239, 43, 38],
+  ]
+  peeledAreas.forEach(([chipX, chipY, chipW, chipH], index) => {
+    ctx.beginPath()
+    ctx.moveTo(chipX, chipY + 5)
+    ctx.lineTo(chipX + chipW * 0.4, chipY)
+    ctx.lineTo(chipX + chipW, chipY + (index % 2 ? 3 : 9))
+    ctx.lineTo(chipX + chipW * 0.75, chipY + chipH)
+    ctx.lineTo(chipX + 5, chipY + chipH * 0.82)
+    ctx.closePath()
+    ctx.fill()
+  })
+
+  ctx.strokeStyle = "rgba(231, 214, 173, .28)"
+  ctx.lineWidth = 1
+  for (let crackX = x + 18; crackX < x + width; crackX += 47) {
+    ctx.beginPath()
+    ctx.moveTo(crackX, y)
+    ctx.lineTo(crackX + 5, y + 14)
+    ctx.lineTo(crackX - 2, y + 23)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+function drawHangingToys(ctx: CanvasRenderingContext2D, now: number) {
+  ctx.save()
+
+  // Faded kite on the first ivy chain.
+  const kiteSway = Math.sin(now / 3200 + 0.4) * 4
+  ctx.translate(274 + kiteSway, 258)
+  ctx.rotate(Math.sin(now / 2400) * 0.06)
+  ctx.fillStyle = "rgba(196, 67, 54, .78)"
+  ctx.beginPath()
+  ctx.moveTo(0, -18)
+  ctx.lineTo(18, 0)
+  ctx.lineTo(0, 21)
+  ctx.lineTo(-18, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = "rgba(64, 139, 183, .76)"
+  ctx.beginPath()
+  ctx.moveTo(0, -18)
+  ctx.lineTo(18, 0)
+  ctx.lineTo(0, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = "rgba(230, 207, 159, .52)"
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(0, 21)
+  ctx.quadraticCurveTo(-12, 35, 2, 48)
+  ctx.quadraticCurveTo(14, 59, 2, 70)
+  ctx.stroke()
+  ctx.restore()
+
+  ctx.save()
+  // Star mobile on the shorter center chain.
+  const mobileSway = Math.sin(now / 3000 + 1.7) * 3
+  ctx.translate(452 + mobileSway, 181)
+  ctx.strokeStyle = "rgba(161, 151, 122, .72)"
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(-28, 0)
+  ctx.lineTo(28, 0)
+  ctx.moveTo(-19, 0)
+  ctx.lineTo(-19, 19)
+  ctx.moveTo(0, 0)
+  ctx.lineTo(0, 29)
+  ctx.moveTo(19, 0)
+  ctx.lineTo(19, 17)
+  ctx.stroke()
+  ;[
+    { x: -19, y: 24, color: "#d59645" },
+    { x: 0, y: 34, color: "#c8b65e" },
+    { x: 19, y: 22, color: "#789bb5" },
+  ].forEach((star) => {
+    ctx.fillStyle = star.color
+    ctx.beginPath()
+    for (let point = 0; point < 10; point += 1) {
+      const angle = -Math.PI / 2 + (point * Math.PI) / 5
+      const radius = point % 2 === 0 ? 8 : 3.5
+      const starX = star.x + Math.cos(angle) * radius
+      const starY = star.y + Math.sin(angle) * radius
+      if (point === 0) ctx.moveTo(starX, starY)
+      else ctx.lineTo(starX, starY)
+    }
+    ctx.closePath()
+    ctx.fill()
+  })
+  ctx.restore()
+
+  ctx.save()
+  // Weathered jack-in-the-box hanging from the long center chain.
+  const boxSway = Math.sin(now / 3400 + 2.8) * 3
+  ctx.translate(742 + boxSway, 286)
+  ctx.fillStyle = "#8b4d38"
+  ctx.strokeStyle = "#3f3330"
+  ctx.lineWidth = 2
+  ctx.fillRect(-20, 0, 40, 31)
+  ctx.strokeRect(-20, 0, 40, 31)
+  ctx.fillStyle = "#b89143"
+  ctx.fillRect(-17, 4, 14, 11)
+  ctx.fillRect(3, 16, 14, 11)
+  ctx.strokeStyle = "#6e7657"
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.quadraticCurveTo(-9, -8, 0, -15)
+  ctx.quadraticCurveTo(9, -22, 0, -29)
+  ctx.stroke()
+  ctx.fillStyle = "#c29b63"
+  ctx.beginPath()
+  ctx.arc(0, -35, 9, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = "#6f392f"
+  ctx.beginPath()
+  ctx.arc(-3, -37, 1.5, 0, Math.PI * 2)
+  ctx.arc(3, -37, 1.5, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+function drawBackgroundGear(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  teeth: number,
+  rotation: number,
+) {
+  ctx.save()
+  ctx.translate(centerX, centerY)
+  ctx.rotate(rotation)
+  ctx.globalAlpha = 0.34
+
+  const toothWidth = (Math.PI * 2 * radius) / teeth / 2.25
+  ctx.fillStyle = "#292d2d"
+  ctx.strokeStyle = "rgba(119, 66, 39, .7)"
+  ctx.lineWidth = 1
+  for (let tooth = 0; tooth < teeth; tooth += 1) {
+    ctx.save()
+    ctx.rotate((tooth / teeth) * Math.PI * 2)
+    ctx.fillRect(radius - 4, -toothWidth / 2, 18, toothWidth)
+    ctx.strokeRect(radius - 4, -toothWidth / 2, 18, toothWidth)
+    ctx.restore()
+  }
+
+  const iron = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius)
+  iron.addColorStop(0, "#1a1f20")
+  iron.addColorStop(0.62, "#303434")
+  iron.addColorStop(1, "#181c1d")
+  ctx.fillStyle = iron
+  ctx.strokeStyle = "#49382f"
+  ctx.lineWidth = 8
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.stroke()
+
+  ctx.strokeStyle = "#171b1c"
+  ctx.lineWidth = radius * 0.16
+  for (let spoke = 0; spoke < 8; spoke += 1) {
+    const angle = (spoke / 8) * Math.PI * 2
+    ctx.beginPath()
+    ctx.moveTo(Math.cos(angle) * radius * 0.21, Math.sin(angle) * radius * 0.21)
+    ctx.lineTo(Math.cos(angle) * radius * 0.78, Math.sin(angle) * radius * 0.78)
+    ctx.stroke()
+  }
+
+  ctx.strokeStyle = "rgba(146, 76, 39, .46)"
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.arc(0, 0, radius * 0.76, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.fillStyle = "#0a0e0f"
+  ctx.strokeStyle = "#44494a"
+  ctx.lineWidth = 7
+  ctx.beginPath()
+  ctx.arc(0, 0, radius * 0.2, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.stroke()
+
+  ctx.fillStyle = "rgba(184, 91, 42, .34)"
+  for (let rivet = 0; rivet < 12; rivet += 1) {
+    const angle = (rivet / 12) * Math.PI * 2
+    ctx.beginPath()
+    ctx.arc(
+      Math.cos(angle) * radius * 0.88,
+      Math.sin(angle) * radius * 0.88,
+      3,
+      0,
+      Math.PI * 2,
+    )
     ctx.fill()
   }
+  ctx.restore()
+}
+
+function drawFurnaceDepth(ctx: CanvasRenderingContext2D, now: number) {
+  const heat = ctx.createLinearGradient(0, WORLD.height, 0, 255)
+  heat.addColorStop(0, "rgba(255, 91, 15, .32)")
+  heat.addColorStop(0.34, "rgba(219, 66, 12, .12)")
+  heat.addColorStop(1, "rgba(149, 43, 9, 0)")
+  ctx.fillStyle = heat
+  ctx.fillRect(0, 255, WORLD.width, WORLD.height - 255)
+
+  const pit = ctx.createLinearGradient(0, 575, 0, WORLD.height)
+  pit.addColorStop(0, "rgba(44, 16, 10, 0)")
+  pit.addColorStop(0.38, "rgba(116, 32, 8, .48)")
+  pit.addColorStop(0.72, "rgba(238, 66, 7, .72)")
+  pit.addColorStop(1, "rgba(255, 150, 24, .9)")
+  ctx.fillStyle = pit
+  ctx.fillRect(560, 555, 700, 165)
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(560, 510, 700, 210)
+  ctx.clip()
+  for (let flame = 0; flame < 18; flame += 1) {
+    const baseX = 578 + flame * 39
+    const flicker = Math.sin(now / 260 + flame * 1.7)
+    const flameHeight = 30 + (flame % 5) * 10 + flicker * 9
+    const lean = Math.sin(now / 410 + flame) * 9
+    const baseY = 709
+    const flameColor =
+      flame % 3 === 0
+        ? "rgba(255, 190, 44, .72)"
+        : flame % 3 === 1
+          ? "rgba(255, 102, 12, .67)"
+          : "rgba(207, 49, 7, .58)"
+    ctx.fillStyle = flameColor
+    ctx.beginPath()
+    ctx.moveTo(baseX - 17, baseY)
+    ctx.bezierCurveTo(
+      baseX - 20,
+      baseY - flameHeight * 0.35,
+      baseX + lean - 5,
+      baseY - flameHeight * 0.72,
+      baseX + lean,
+      baseY - flameHeight,
+    )
+    ctx.bezierCurveTo(
+      baseX + 8,
+      baseY - flameHeight * 0.55,
+      baseX + 20,
+      baseY - flameHeight * 0.25,
+      baseX + 17,
+      baseY,
+    )
+    ctx.closePath()
+    ctx.fill()
+  }
+
+  for (let ember = 0; ember < 22; ember += 1) {
+    const progress = (now / 2600 + ember * 0.083) % 1
+    const emberX =
+      575 + ((ember * 73) % 660) + Math.sin(progress * 8 + ember) * 12
+    const emberY = 700 - progress * (130 + (ember % 4) * 24)
+    ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.8
+    ctx.fillStyle = ember % 2 === 0 ? "#ff9d26" : "#e75316"
+    ctx.beginPath()
+    ctx.arc(emberX, emberY, ember % 3 === 0 ? 2 : 1.2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+function drawFactorySign(ctx: CanvasRenderingContext2D, now: number) {
+  const x = 194
+  const y = 49
+  const width = 342
+  const height = 58
+  const text = "HALLOWAY TOY WORKS"
+  const flickeringLetters = new Set([4, 11])
+
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(-0.008)
+  ctx.globalAlpha = 0.74
+
+  ctx.fillStyle = "rgba(25, 29, 28, .72)"
+  ctx.strokeStyle = "rgba(113, 81, 55, .42)"
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(7, 1)
+  ctx.lineTo(width - 21, 0)
+  ctx.lineTo(width, 13)
+  ctx.lineTo(width - 4, height - 5)
+  ctx.lineTo(24, height)
+  ctx.lineTo(0, height - 13)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+
+  ctx.strokeStyle = "rgba(170, 113, 62, .14)"
+  ctx.lineWidth = 1
+  ctx.strokeRect(10, 9, width - 22, height - 19)
+  ctx.fillStyle = "rgba(115, 61, 35, .16)"
+  ctx.fillRect(18, 4, 46, 3)
+  ctx.fillRect(238, height - 8, 66, 3)
+
+  ctx.font = "800 28px 'Barlow Condensed', sans-serif"
+  ctx.textBaseline = "middle"
+  const letterGap = 1.2
+  const textWidth =
+    Array.from(text).reduce(
+      (total, letter) => total + ctx.measureText(letter).width + letterGap,
+      0,
+    ) - letterGap
+  let cursor = (width - textWidth) / 2
+
+  Array.from(text).forEach((letter, index) => {
+    const letterWidth = ctx.measureText(letter).width
+    if (flickeringLetters.has(index)) {
+      const flicker =
+        index === 4
+          ? 0.32 +
+            (Math.sin(now / 430) + 1) * 0.045 +
+            (Math.sin(now / 97) > 0.94 ? 0.07 : 0)
+          : 0.3 +
+            (Math.sin(now / 520 + 1.7) + 1) * 0.05 +
+            (Math.sin(now / 131) > 0.96 ? 0.06 : 0)
+      ctx.save()
+      ctx.globalAlpha = flicker
+      ctx.shadowColor = "rgba(214, 143, 69, .6)"
+      ctx.shadowBlur = 3
+      ctx.fillStyle = "#c38e52"
+      ctx.fillText(letter, cursor, height / 2 + 1)
+      ctx.restore()
+    } else {
+      const wear = 0.16 + ((index * 7) % 5) * 0.025
+      ctx.fillStyle = `rgba(184, 155, 116, ${wear})`
+      ctx.fillText(letter, cursor, height / 2 + 1)
+    }
+    cursor += letterWidth + letterGap
+  })
+
+  ctx.fillStyle = "#151b1c"
+  ;[
+    { x: 43, y: 16, w: 17, h: 5 },
+    { x: 128, y: 34, w: 24, h: 7 },
+    { x: 275, y: 12, w: 31, h: 6 },
+  ].forEach((chip) => ctx.fillRect(chip.x, chip.y, chip.w, chip.h))
+
+  ctx.strokeStyle = "rgba(196, 154, 96, .09)"
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(82, 8)
+  ctx.lineTo(88, 20)
+  ctx.lineTo(84, 31)
+  ctx.moveTo(218, 9)
+  ctx.lineTo(212, 25)
+  ctx.lineTo(220, 43)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawFactoryBackground(ctx: CanvasRenderingContext2D, now: number) {
+  const wall = ctx.createLinearGradient(0, 0, 0, WORLD.height)
+  wall.addColorStop(0, "#18212b")
+  wall.addColorStop(0.52, "#131b23")
+  wall.addColorStop(1, "#0d141b")
+  ctx.fillStyle = wall
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height)
+
+  ctx.save()
+  for (let row = 0; row < 26; row += 1) {
+    const brickY = row * 29
+    const offset = row % 2 === 0 ? -34 : 0
+    for (let column = -1; column < 20; column += 1) {
+      const brickX = offset + column * 68
+      const fade = 0.035 + ((row * 5 + column * 3 + 17) % 5) * 0.011
+      ctx.fillStyle =
+        (row + column) % 7 === 0
+          ? `rgba(96, 56, 49, ${fade})`
+          : `rgba(74, 53, 50, ${fade * 0.7})`
+      ctx.fillRect(brickX + 2, brickY + 2, 64, 25)
+      ctx.strokeStyle = `rgba(116, 104, 94, ${fade * 0.72})`
+      ctx.lineWidth = 1
+      ctx.strokeRect(brickX + 0.5, brickY + 0.5, 67, 28)
+    }
+  }
+
+  drawFurnaceDepth(ctx, now)
+  drawBackgroundGear(ctx, 842, 568, 96, 20, now / 26000)
+  drawBackgroundGear(ctx, 1013, 576, 76, 16, -now / 20800 + 0.09)
+
+  const leftBeam = ctx.createLinearGradient(0, 30, 0, 620)
+  leftBeam.addColorStop(0, "rgba(255, 199, 119, .24)")
+  leftBeam.addColorStop(0.48, "rgba(228, 151, 84, .1)")
+  leftBeam.addColorStop(1, "rgba(151, 85, 45, 0)")
+  ctx.fillStyle = leftBeam
+  ctx.beginPath()
+  ctx.moveTo(72, 52)
+  ctx.lineTo(211, 52)
+  ctx.lineTo(410, 620)
+  ctx.lineTo(8, 620)
+  ctx.closePath()
+  ctx.fill()
+
+  const centerBeam = ctx.createLinearGradient(0, 36, 0, 590)
+  centerBeam.addColorStop(0, "rgba(255, 205, 132, .2)")
+  centerBeam.addColorStop(0.5, "rgba(222, 151, 92, .08)")
+  centerBeam.addColorStop(1, "rgba(143, 81, 48, 0)")
+  ctx.fillStyle = centerBeam
+  ctx.beginPath()
+  ctx.moveTo(510, 38)
+  ctx.lineTo(668, 38)
+  ctx.lineTo(790, 590)
+  ctx.lineTo(420, 590)
+  ctx.closePath()
+  ctx.fill()
+
+  drawFactoryWindow(ctx, 66, 48, 150, 250)
+  drawFactoryWindow(ctx, 505, 34, 165, 218)
+  drawFactoryWindow(ctx, 945, 194, 142, 224)
+  drawPeelingMural(ctx)
+  drawFactorySign(ctx, now)
+
+  ctx.fillStyle = "rgba(3, 7, 11, .64)"
+  ctx.fillRect(0, 0, WORLD.width, 24)
+  ctx.strokeStyle = "rgba(50, 61, 70, .7)"
+  ctx.lineWidth = 12
+  ctx.beginPath()
+  ctx.moveTo(0, 38)
+  ctx.lineTo(1280, 38)
+  ctx.moveTo(44, 0)
+  ctx.lineTo(318, 168)
+  ctx.lineTo(590, 0)
+  ctx.moveTo(700, 0)
+  ctx.lineTo(946, 154)
+  ctx.lineTo(1192, 0)
+  ctx.stroke()
+
+  ctx.strokeStyle = "rgba(63, 76, 83, .34)"
+  ctx.lineWidth = 18
+  ctx.beginPath()
+  ctx.moveTo(1160, 0)
+  ctx.lineTo(1160, 362)
+  ctx.quadraticCurveTo(1160, 390, 1132, 390)
+  ctx.lineTo(1104, 390)
+  ctx.stroke()
+
+  drawHangingIvyChain(ctx, 274, 248, now, 0.4)
+  drawHangingIvyChain(ctx, 452, 174, now, 1.7)
+  drawHangingIvyChain(ctx, 742, 286, now, 2.8)
+  drawHangingIvyChain(ctx, 1210, 206, now, 4.1)
+  drawHangingToys(ctx, now)
+
+  ctx.fillStyle = "rgba(255, 224, 178, .045)"
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height)
+
+  const grime = ctx.createRadialGradient(875, 520, 20, 875, 520, 390)
+  grime.addColorStop(0, "rgba(34, 23, 20, .04)")
+  grime.addColorStop(1, "rgba(0, 0, 0, .28)")
+  ctx.fillStyle = grime
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height)
+  ctx.restore()
 }
 
 function drawWorld(
   ctx: CanvasRenderingContext2D,
   game: Game,
   atlases: SpriteAtlases,
-  art: GameArt,
   now: number,
 ) {
   ctx.clearRect(0, 0, WORLD.width, WORLD.height)
-  drawStorybookBackground(ctx, art, now)
-  drawStorybookForeground(ctx, art)
-  drawStorybookDecor(ctx, art, now)
+  drawFactoryBackground(ctx, now)
 
-  if (art.objects?.complete && art.objects.naturalWidth > 0) {
-    drawStorybookHazard(ctx, GROUND_WATER, art, "factory", now)
-    drawStorybookHazard(ctx, QUICKSAND, art, "quicksand", now)
-  } else {
-    drawSandHazard(ctx, GROUND_WATER)
-    drawSandHazard(ctx, QUICKSAND)
-  }
+  ctx.strokeStyle = "rgba(100, 113, 120, .46)"
+  ctx.lineWidth = 2
+  ctx.shadowColor = "#283540"
+  ctx.shadowBlur = 8
+  ctx.strokeRect(8, 8, WORLD.width - 16, WORLD.height - 16)
+  ctx.shadowBlur = 0
 
-  solids.forEach((rect) => {
-    if (art.tiles?.complete && art.tiles.naturalWidth > 0)
-      drawStonePlatform(ctx, rect, art)
-    else drawPlatform(ctx, rect)
-  })
+  drawToyPit(ctx, GROUND_WATER, now, 0.4)
+  drawToyPit(ctx, QUICKSAND, now, 2.1)
+
+  solids.forEach((rect) => drawPlatform(ctx, rect))
 
   // Marked vertical routes are reserved for the ninja.
   climbWalls.forEach((wall) => {
@@ -491,64 +1555,73 @@ function drawWorld(
     }
   })
 
-  if (art.objects?.complete && art.objects.naturalWidth > 0)
-    drawStorybookLift(ctx, art, 1076, game.liftY, 97, game.leverOn)
-  else drawLift(ctx, 1076, game.liftY, 97)
-  ctx.strokeStyle = "rgba(92,225,230,.25)"
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.moveTo(1086, 478)
-  ctx.lineTo(1086, 622)
-  ctx.moveTo(1163, 478)
-  ctx.lineTo(1163, 622)
-  ctx.stroke()
+  drawLift(ctx, 1076, game.liftY, 97, 332)
+  drawLift(ctx, 830, game.exitLiftY, 97, 20)
+  const lowerLiftTarget = game.leverOn ? 622 : 478
+  const upperLiftTarget = game.exitLiftButton || game.topLiftButton ? 272 : 130
+  if (Math.abs(lowerLiftTarget - game.liftY) > 0.75) {
+    drawFallingIvyBits(ctx, 1076, game.liftY, 97, now, 0.23)
+  }
+  if (Math.abs(upperLiftTarget - game.exitLiftY) > 0.75) {
+    drawFallingIvyBits(ctx, 830, game.exitLiftY, 97, now, 0.61)
+  }
 
-  if (art.objects?.complete && art.objects.naturalWidth > 0)
-    drawStorybookLift(ctx, art, 830, game.exitLiftY, 97, game.exitLiftButton || game.topLiftButton)
-  else drawLift(ctx, 830, game.exitLiftY, 97)
-  ctx.beginPath()
-  ctx.moveTo(840, 130)
-  ctx.lineTo(840, 272)
-  ctx.moveTo(917, 130)
-  ctx.lineTo(917, 272)
-  ctx.stroke()
+  drawLever(ctx, game.leverOn)
+  drawFloorButton(ctx, 520, 288, game.exitLiftButton)
+  drawFloorButton(ctx, 1010, 118, game.topLiftButton)
 
-  if (!drawStorybookLever(ctx, art, game.leverOn)) drawLever(ctx, game.leverOn)
-  if (!drawStorybookButton(ctx, art, 520, 288, game.exitLiftButton))
-    drawFloorButton(ctx, 520, 288, game.exitLiftButton)
-  if (!drawStorybookButton(ctx, art, 1010, 118, game.topLiftButton))
-    drawFloorButton(ctx, 1010, 118, game.topLiftButton)
-
-  game.blocks.forEach((block) => drawStorybookBlock(ctx, art, block))
-
-  game.gems.filter((gem) => !gem.collected).forEach((gem) => {
-    if (art.objects?.complete && art.objects.naturalWidth > 0)
-      drawStorybookGem(ctx, art, gem, gem.role === "ninja")
-    else drawGem(ctx, gem)
+  game.blocks.forEach((block) => {
+    const blockGradient = ctx.createLinearGradient(
+      block.x,
+      block.y,
+      block.x,
+      block.y + block.h,
+    )
+    blockGradient.addColorStop(0, "#ffc84c")
+    blockGradient.addColorStop(1, "#b87a20")
+    ctx.fillStyle = blockGradient
+    ctx.shadowColor = "#ffc84c"
+    ctx.shadowBlur = 8
+    roundedRect(ctx, block.x, block.y, block.w, block.h, 5)
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = "#ffe59b"
+    ctx.lineWidth = 2
+    ctx.stroke()
   })
 
-  // Both individual gates retain their exact original win/collision rectangles.
-  ;[
-    { x: 1090, role: "robot" as const, active: game.robotExit },
-    { x: 1170, role: "ninja" as const, active: game.ninjaExit },
-  ].forEach((pod) => {
-    drawStorybookExit(ctx, art, pod.x, pod.role, pod.active)
-  })
+  game.gems.filter((gem) => !gem.collected).forEach((gem) => drawGem(ctx, gem))
+  if (!game.robotHasKey) drawKey(ctx, getRobotKeyRect(game))
+  if (!game.ninjaHasKey) drawKey(ctx, NINJA_KEY, "#b794ff", "#eadfff")
+
+  drawExitDoor(
+    ctx,
+    EXIT_DOORS.ninja,
+    "ninja",
+    !game.ninjaHasKey,
+    game.ninjaExit,
+    atlases.ninja,
+  )
+  drawExitDoor(
+    ctx,
+    EXIT_DOORS.robot,
+    "robot",
+    !game.robotHasKey,
+    game.robotExit,
+    atlases.robot,
+  )
 
   drawCharacterSprite(ctx, game.robot, atlases, now)
   drawCharacterSprite(ctx, game.ninja, atlases, now)
 
   if (!game.started) {
-    ctx.fillStyle = "rgba(18, 15, 38, .40)"
+    ctx.fillStyle = "rgba(4, 9, 17, .7)"
     ctx.fillRect(0, 0, WORLD.width, WORLD.height)
     ctx.fillStyle = "#eef6ff"
     ctx.font = "800 42px Inter, sans-serif"
     ctx.textAlign = "center"
-    ctx.shadowColor = "#483355"
-    ctx.shadowBlur = 10
-    ctx.fillText("THE RUINS AWAIT", WORLD.width / 2, 314)
-    ctx.shadowBlur = 0
-    ctx.fillStyle = "#ffe8c2"
+    ctx.fillText("CO-OP SYSTEM ONLINE", WORLD.width / 2, 314)
+    ctx.fillStyle = "#95a9be"
     ctx.font = "500 18px Inter, sans-serif"
     ctx.fillText("Press any movement key to begin", WORLD.width / 2, 353)
   }
@@ -580,8 +1653,7 @@ function movePlayer(
   if (input.right) player.facing = 1
 
   if (player.climbing) {
-    // Wall climbing is separate from jump buffering; holding UP on a wall
-    // should not queue a surprise jump when the Ninja leaves the wall.
+    // Keep the Ninja's wall climb independent from jump input buffering.
     player.jumpHeld = input.up
     player.jumpBufferRemaining = 0
     player.coyoteRemaining = 0
@@ -656,6 +1728,7 @@ function updateGame(game: Game, dt: number) {
     [...Object.values(robotInput), ...Object.values(ninjaInput)].some(Boolean)
   )
     game.started = true
+
   movePlayer(game.robot, game, dt, robotInput)
   if (game.failedRole) return
   movePlayer(game.ninja, game, dt, ninjaInput)
@@ -777,10 +1850,15 @@ function updateGame(game: Game, dt: number) {
     }
   }
 
-  const robotExitRect = { x: 1090, y: 54, w: 58, h: 76 }
-  const ninjaExitRect = { x: 1170, y: 54, w: 58, h: 76 }
-  game.robotExit = overlaps(game.robot, robotExitRect)
-  game.ninjaExit = overlaps(game.ninja, ninjaExitRect)
+  if (!game.robotHasKey && overlaps(game.robot, getRobotKeyRect(game))) {
+    game.robotHasKey = true
+  }
+  if (!game.ninjaHasKey && overlaps(game.ninja, NINJA_KEY)) {
+    game.ninjaHasKey = true
+  }
+
+  game.robotExit = game.robotHasKey && overlaps(game.robot, EXIT_DOORS.robot)
+  game.ninjaExit = game.ninjaHasKey && overlaps(game.ninja, EXIT_DOORS.ninja)
   game.won = game.robotExit && game.ninjaExit
 }
 
@@ -792,7 +1870,6 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<Game>(resetGame())
   const spritesRef = useRef<SpriteAtlases>({})
-  const artRef = useRef<GameArt>({})
   const animationRef = useRef(0)
   const [result, setResult] = useState<MissionResult | null>(null)
   const [failureRole, setFailureRole] = useState<Role | null>(null)
@@ -805,6 +1882,8 @@ export default function App() {
     blocks: MAX_BLOCKS,
     won: false,
     elapsedMs: 0,
+    robotHasKey: false,
+    ninjaHasKey: false,
   })
   const reset = useCallback(() => {
     gameRef.current = resetGame()
@@ -814,6 +1893,8 @@ export default function App() {
       blocks: MAX_BLOCKS,
       won: false,
       elapsedMs: 0,
+      robotHasKey: false,
+      ninjaHasKey: false,
     })
     setResult(null)
     setFailureRole(null)
@@ -870,7 +1951,6 @@ export default function App() {
       image.src = SPRITE_PATHS[role]
       spritesRef.current[role] = image
     })
-    loadGameArt(artRef.current)
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -976,7 +2056,7 @@ export default function App() {
         })
       }
 
-      drawWorld(ctx, game, spritesRef.current, artRef.current, time)
+      drawWorld(ctx, game, spritesRef.current, time)
       statAccumulator += dt
       if (statAccumulator > 0.12) {
         statAccumulator = 0
@@ -990,6 +2070,8 @@ export default function App() {
           blocks: MAX_BLOCKS - game.blocks.length,
           won: game.won,
           elapsedMs: game.won ? game.elapsedMs : getElapsedMs(game, time),
+          robotHasKey: game.robotHasKey,
+          ninjaHasKey: game.ninjaHasKey,
         })
       }
       animationRef.current = requestAnimationFrame(frame)
@@ -1037,6 +2119,12 @@ export default function App() {
               <span>GEMS COLLECTED</span>
               <strong>◆ {stats.robot}/3</strong>
             </span>
+            {stats.robotHasKey && (
+              <span className="key-status">
+                <i aria-hidden="true" />
+                KEY
+              </span>
+            )}
             <span className="block-count">{stats.blocks} BLOCKS</span>
           </div>
           <div className="objective mission-timer">
@@ -1045,6 +2133,12 @@ export default function App() {
           </div>
           <div className="player-status ninja-status">
             <span className="block-count">WALL CLIMB</span>
+            {stats.ninjaHasKey && (
+              <span className="key-status ninja-key">
+                <i aria-hidden="true" />
+                KEY
+              </span>
+            )}
             <span className="gem-count">
               <span>GEMS COLLECTED</span>
               <strong>◆ {stats.ninja}/3</strong>
@@ -1080,7 +2174,7 @@ export default function App() {
                 <small>
                   Oh no! The {failureRole} sank in the {failureHazard}.
                 </small>
-                <strong id="failure-title">Misson 1 Failed</strong>
+                <strong id="failure-title">Mission 1 Failed</strong>
                 <div className="failure-actions">
                   <button className="retry-mission" onClick={reset}>
                     RETRY MISSION
