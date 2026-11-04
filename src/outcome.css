@@ -42,3 +42,7 @@
 .outcome-symbol {display:block;margin:0 auto;}
 .outcome-tip p {font-size:14px;}
 .outcome-heading p {font-size:16px;}
+/* Two supplied illustrations share one sheet; exclude its black separator. */
+.outcome-character-art {position:absolute;inset:0;z-index:-2;background-image:url('/story/character-failures.png');background-repeat:no-repeat;background-size:auto 207.5%;background-position:center top;}
+.outcome-character-art.is-robot {background-position:center bottom;}
+.outcome-failure:has(.outcome-character-art)::after {background:linear-gradient(#07101ba8,transparent 48%,#09111ed9 76%,#09111e 100%);}
