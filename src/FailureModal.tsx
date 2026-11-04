@@ -18,7 +18,7 @@ export default function FailureModal({ role, hazard, onRetry, onReturn }: Failur
     <div className="failure-overlay" role="dialog" aria-modal="true" aria-labelledby="failure-title" aria-describedby="failure-description">
       <section className="failure-panel">
         <header className="failure-heading">
-          <div className="failure-status"><span aria-hidden="true" className="failure-status-light" /> HALLOWAY TOY WORKS <span> / </span> RESCUE INTERRUPTED</div>
+          <div className="failure-status"><span aria-hidden="true" className="failure-status-light" /> HALLOWAY TOYS <span> / </span> RESCUE INTERRUPTED</div>
           <h2 id="failure-title">MISSION FAILED<span className="failure-period">.</span></h2>
           <p id="failure-description">{character} was lost in {hazardName}. The factory isn't finished yet.</p>
         </header>

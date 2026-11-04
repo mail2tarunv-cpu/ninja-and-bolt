@@ -11,7 +11,7 @@ const STORY = [
   {
     eyebrow: '01 / THE FACTORY',
     title: 'The factory never stopped.',
-    description: 'Thirty years ago, everyone left Halloway Toy Works. The machines kept running. And Bolt kept waiting.',
+    description: 'Thirty years ago, everyone left Halloway Toys. The machines kept running. And Bolt kept waiting.',
     image: '/story/unit-7.jpg',
     alt: 'Bolt standing alone in an abandoned toy factory.',
   },
@@ -74,12 +74,12 @@ export default function StoryModal({ mode = 'onboarding', onBegin, onNavigate }:
         <div className="story-art">
           <img key={slide.image} src={slide.image} alt={slide.alt} />
           <header className="story-art-header">
-            <span><span className="story-lamp" aria-hidden="true" /> HALLOWAY TOY WORKS</span>
+            <span><span className="story-lamp" aria-hidden="true" /> HALLOWAY TOYS</span>
             <button className="story-skip" type="button" onClick={onBegin}>
               {isIntro ? 'SKIP INTRO' : 'CLOSE'} <span aria-hidden="true">×</span>
             </button>
           </header>
-          <div className="story-image-caption" aria-hidden="true">NINJA & BOLT / CO-OP RESCUE</div>
+          <div className="story-image-caption" aria-hidden="true">HALLOWAY TOYS / CO-OP RESCUE</div>
         </div>
 
         <div className="story-editorial">

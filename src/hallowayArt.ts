@@ -1,5 +1,5 @@
 /**
- * Halloway Toy Works — approved V1 background and platform kit.
+ * Halloway Toys — approved V1 background and platform kit.
  * Actual authored SVG artwork lives in /public/halloway; the existing collision
  * rectangles, world resolution, and game mechanics remain untouched.
  *

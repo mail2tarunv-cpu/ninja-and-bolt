@@ -62,7 +62,7 @@ export function drawRefinedSign(ctx:CanvasRenderingContext2D) {
   ctx.beginPath();ctx.moveTo(x+10,y);ctx.lineTo(x+w-10,y);ctx.lineTo(x+w,y+10);ctx.lineTo(x+w,y+h-10);ctx.lineTo(x+w-10,y+h);ctx.lineTo(x+10,y+h);ctx.lineTo(x,y+h-10);ctx.lineTo(x,y+10);ctx.closePath();ctx.fill();ctx.stroke()
   ctx.strokeStyle='#0c1823';ctx.strokeRect(x+5,y+6,w-10,h-12)
   ctx.fillStyle='#bfa06c';ctx.font='700 21px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle'
-  ctx.fillText('HALLOWAY TOY WORKS',x+w/2,y+h/2, w-52)
+  ctx.fillText('HALLOWAY TOYS',x+w/2,y+h/2, w-52)
   for(const cx of [x+14,x+w-14]){ctx.fillStyle='#0d1923';ctx.beginPath();ctx.arc(cx,y+h/2,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8a98a0';ctx.beginPath();ctx.arc(cx,y+h/2-1,2,0,Math.PI*2);ctx.fill()}
   ctx.restore()
 }

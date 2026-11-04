@@ -1348,7 +1348,7 @@ function drawFactorySign(ctx: CanvasRenderingContext2D, now: number) {
   const y = 49
   const width = 342
   const height = 58
-  const text = "HALLOWAY TOY WORKS"
+  const text = "HALLOWAY TOYS"
   const flickeringLetters = new Set([4, 11])
 
   ctx.save()
@@ -2203,7 +2203,7 @@ export default function App() {
             <span />
           </div>
           <div>
-            <h1>NINJA <span>&</span> BOLT</h1>
+            <h1>HALLOWAY <span>TOYS</span></h1>
           </div>
         </div>
         <div className="header-actions">
@@ -2312,7 +2312,7 @@ export default function App() {
             >
               <section className="results-panel">
                 <header className="results-header">
-                  <span>HALLOWAY TOY WORKS / EXTRACTION COMPLETE</span>
+                  <span>HALLOWAY TOYS / EXTRACTION COMPLETE</span>
                   <h2 id="results-title">NIGHT SHIFT OVER.</h2>
                   <p>For the first time in thirty years, Unit 7 gets to go home.</p>
                 </header>

@@ -1,4 +1,4 @@
-# Ninja & Bolt — Figma Make Sync
+# Halloway Toys — Figma Make Sync
 
 This repository mirrors the updated **UX Kids Concrete** Figma Make game, adapted for standalone React/TypeScript/Vite deployment. Synced November 3, 2026.
 
@@ -39,7 +39,7 @@ The older fantasy art pipeline (`src/art.ts` and `public/art/`) is retained as a
 
 ## Story introduction and audio
 
-At launch, three illustrated panels introduce Halloway Toy Works, Ninja and Unit 7, their complementary abilities, and the shared escape objective. They appear over a paused game canvas, before the mission timer begins. A **STORY** button reopens the introduction, and **RESET** / **PLAY AGAIN** restart gameplay without forcing the introduction again.
+At launch, three illustrated panels introduce Halloway Toys, Ninja and Unit 7, their complementary abilities, and the shared escape objective. They appear over a paused game canvas, before the mission timer begins. A **STORY** button reopens the introduction, and **RESET** / **PLAY AGAIN** restart gameplay without forcing the introduction again.
 
 The story artwork lives under `public/story/`. The game's soundtrack is an original procedural music-box and toy-factory rhythm built with the browser's Web Audio API (`src/sound.ts`); no licensed tracks or external audio dependency are used. Sound effects cover jumping, building, gems, keys, switches, success, failure, and interface taps. The **SOUND ON / OFF** control mutes or unmutes both soundtrack and SFX, and persists locally.
 
