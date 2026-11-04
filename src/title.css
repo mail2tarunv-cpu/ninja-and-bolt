@@ -1,4 +1,5 @@
-.title-screen {position:fixed;inset:0;z-index:120;isolation:isolate;background:#0a1223;color:#fff4e5;overflow:auto;}
+.canvas-wrap {position:relative;}
+.title-screen {position:absolute;inset:0;z-index:30;isolation:isolate;background:#0a1223;color:#fff4e5;overflow:auto;}
 .title-background {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;}
 .title-screen::after {content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#080f2644,transparent 45%,#080f2666);}
 .title-brand {position:absolute;top:10%;left:8%;}
