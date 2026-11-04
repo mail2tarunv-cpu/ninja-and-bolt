@@ -335,3 +335,61 @@ body { overscroll-behavior:none; }
 .game-frame { box-shadow: 0 16px 48px #0005, inset 0 1px 0 #ffffff0a; }
 .gem-count { border: 1px solid #ffffff06; }
 .controls { box-shadow: inset 0 1px 0 #ffffff08; }
+
+/* Readable game shell: reserve the full height of the controls before sizing the stage. */
+.app-shell { --stage-width:min(calc(100vw - 40px),calc((100dvh - 224px)*16/9),1640px); grid-template-rows:44px auto 104px; gap:10px; padding:12px 20px; background:#0b1420; }
+.app-shell .topbar {height:44px;grid-template-columns:1fr auto;padding:0;}
+.app-shell .header-actions {justify-content:flex-end;gap:8px;}
+.app-shell .topbar-secondary {height:36px;font-size:12px;letter-spacing:0;padding:0 14px;}
+.app-shell .brand h1 {font-size:20px;}
+.app-shell .game-frame {grid-template-rows:48px auto;border-color:#ffffff16;box-shadow:0 12px 32px #0003;}
+.app-shell .status-strip {height:48px;padding:0 12px;background:#142030;}
+.app-shell .hud-name strong {font:700 16px Inter,sans-serif;letter-spacing:0;}
+.app-shell .hud-avatar {display:block;width:30px;height:34px;}
+.app-shell .hud-name small {display:none;}
+.app-shell .block-count {display:inline;font-size:13px;color:#c7d2df;}
+.app-shell .objective {min-width:80px;padding:2px 12px;border:0;}
+.app-shell .objective small {font-size:9px;}
+.app-shell .mission-timer strong {font-size:21px;font-variant-numeric:tabular-nums;}
+.app-shell .gem-count {background:none;border:0;padding:0 5px;}
+.app-shell .gem-count > span {display:flex;gap:5px;}
+.gem-slot {font-style:normal;font-size:18px;color:#546175;}
+.robot-status .gem-slot.collected {color:#ffd078;}
+.ninja-status .gem-slot.collected {color:#c6a3ff;}
+.app-shell .controls {height:104px;grid-template-columns:1fr 1fr;gap:24px;padding:8px 2px;border:0;border-radius:0;background:none;box-shadow:none;}
+.app-shell .controls .control-card {display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;}
+.app-shell .controls .ninja-card {align-items:flex-end;flex-direction:column-reverse;}
+.app-shell .controls .control-identity {display:flex;flex-direction:row;align-items:baseline;gap:8px;}
+.app-shell .controls .control-identity small {font-size:15px;color:#f1f5f9;}
+.app-shell .controls .control-identity strong {font-size:12px;font-weight:500;color:#a3b4c7;}
+.app-shell .controls .control-shortcuts,.app-shell .controls .ninja-card .control-shortcuts {margin:0;gap:16px;flex-wrap:wrap;}
+.app-shell .controls .control-shortcuts > span {font-size:15px;color:#e0e7ef;gap:5px;letter-spacing:0;white-space:nowrap;}
+.app-shell .controls .key {height:32px;min-width:30px;padding:0 6px;font-size:15px;border-radius:6px;background:#203247;border:1px solid #63788e;box-shadow:0 2px 0 #060e18;color:#fff;}
+.help-controls {text-align:left;padding:8px 0;}
+.help-controls p {font-size:14px;line-height:1.65;color:#d3dfea;}
+.topbar button:focus-visible {outline:2px solid #ffd078;outline-offset:3px;}
+@media(max-width:1000px) {
+ .app-shell {--stage-width:min(calc(100vw - 24px),calc((100dvh - 260px)*16/9),1640px);grid-template-rows:44px auto 140px;padding:12px;}
+ .app-shell .controls {height:140px;gap:16px;}
+ .app-shell .controls .control-shortcuts,.app-shell .controls .ninja-card .control-shortcuts {gap:8px 12px;}
+ .app-shell .controls .ninja-card {align-items:flex-start;}
+}
+@media(max-width:560px) {
+ html,body,#root {overflow:auto;}
+ .app-shell {height:auto;min-height:100dvh;--stage-width:calc(100vw - 24px);align-content:start;grid-template-rows:44px auto auto;}
+ .app-shell .brand h1 {font-size:15px;}
+ .app-shell .brand-mark {display:none;}
+ .app-shell .topbar-secondary {font-size:11px;padding:0 7px;}
+ .app-shell .header-actions {gap:4px;}
+ .app-shell .controls {height:auto;min-height:180px;align-items:start;}
+ .app-shell .controls .control-shortcuts {flex-direction:column;align-items:flex-start;}
+ .app-shell .hud-avatar {display:none;}
+ .app-shell .hud-name strong {font-size:13px;}
+ .app-shell .block-count {font-size:10px;}
+ .app-shell .player-status {gap:3px;padding:0;}
+ .app-shell .status-strip {padding:0 6px;}
+ .app-shell .gem-count {padding:0 2px;}
+ .app-shell .gem-count > span {gap:2px;}
+ .gem-slot {font-size:12px;}
+ .app-shell .objective {min-width:48px;padding:0 4px;}
+}

@@ -2201,14 +2201,9 @@ export default function App() {
             <h1>NINJA <span>&</span> BOLT</h1>
           </div>
         </div>
-        <div className="mission">
-          <span className="mission-indicator" aria-hidden="true" />
-          <span>HALLOWAY TOY WORKS</span>
-          <strong>MISSION 01 / ESCAPE</strong>
-        </div>
         <div className="header-actions">
-          <button className="topbar-secondary" onClick={() => { sound.play('ui'); setPauseOpen(false); setStoryOpen(true) }} disabled={Boolean(result || failureRole)}>
-            STORY
+          <button className="topbar-secondary" onClick={() => { sound.play('ui'); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole)}>
+            How to play
           </button>
           <button className="topbar-secondary" onClick={toggleSound} aria-label={soundEnabled ? 'Mute music and sound effects' : 'Enable music and sound effects'}>
             {soundEnabled ? '♪ SOUND ON' : '♪ MUTED'}
@@ -2216,9 +2211,7 @@ export default function App() {
           <button className="topbar-secondary pause-button" onClick={() => { sound.play('ui'); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole || pauseOpen)} aria-label="Pause mission" title="Pause (Esc)">
             Ⅱ PAUSE
           </button>
-          <button className="reset-button" onClick={() => { reset(); sound.start() }}>
-            RESET <Key>R</Key>
-          </button>
+
         </div>
       </header>
 
@@ -2226,16 +2219,16 @@ export default function App() {
         <div className="status-strip" aria-label="Mission status">
           <div className="player-status robot-status">
             <img className="hud-avatar" src="/sprites/robot-portrait.png" alt="" />
-            <div className="hud-name"><small>PLAYER 01</small><strong>UNIT 7</strong></div>
-            <span className="gem-count"><span>GEMS</span><strong>◆ {stats.robot}/3</strong></span>
-            <span className="block-count">▣ {stats.blocks} BLOCKS</span>
+            <div className="hud-name"><strong>Bolt</strong></div>
+            <span className="gem-count"><span aria-label={`${stats.robot} of 3 gems`}>{[0,1,2].map(i => <i key={i} className={i < stats.robot ? "gem-slot collected" : "gem-slot"}>◆</i>)}</span></span>
+            <span className="block-count">▣ {stats.blocks} blocks</span>
             {stats.robotHasKey && <span className="key-status"><i aria-hidden="true" /> KEY</span>}
           </div>
-          <div className="objective mission-timer"><small>TIME INSIDE THE FACTORY</small><strong>{formatTime(stats.elapsedMs)}</strong></div>
+          <div className="objective mission-timer"><small>TIME</small><strong>{formatTime(stats.elapsedMs)}</strong></div>
           <div className="player-status ninja-status">
             {stats.ninjaHasKey && <span className="key-status ninja-key"><i aria-hidden="true" /> KEY</span>}
-            <span className="gem-count"><span>GEMS</span><strong>◆ {stats.ninja}/3</strong></span>
-            <div className="hud-name"><small>PLAYER 02</small><strong>THE NINJA</strong></div>
+            <span className="gem-count"><span aria-label={`${stats.ninja} of 3 gems`}>{[0,1,2].map(i => <i key={i} className={i < stats.ninja ? "gem-slot collected" : "gem-slot"}>◆</i>)}</span></span>
+            <div className="hud-name"><strong>Ninja</strong></div>
             <img className="hud-avatar" src="/sprites/ninja-portrait.png" alt="" />
           </div>
         </div>
@@ -2258,7 +2251,7 @@ export default function App() {
               <section className="pause-panel">
                 <span className="pause-kicker">HALLOWAY TOY WORKS / MISSION 01</span>
                 <h2 id="pause-title">Ⅱ PAUSED</h2>
-                <p>The factory can keep running without you. Take your time.</p>
+                <div className="help-controls"><p><strong>Bolt</strong> · A / D to move · W to jump · Q to build</p><p><strong>Ninja</strong> · ← / → to move · ↑ to jump or climb · ↓ to climb down</p><p>Collect your own key, then reach both exit doors together. Build from the edge of a gap or your newest block.</p></div>
                 <div className="pause-actions">
                   <button className="pause-primary" onClick={() => { sound.play('ui'); setPauseOpen(false) }}>▶ RESUME MISSION</button>
                   <button onClick={() => { sound.play('ui'); reset(); sound.start() }}>↻ RESTART MISSION</button>
@@ -2379,13 +2372,12 @@ export default function App() {
       <section className="controls" aria-label="Game controls">
         <div className="control-card robot-card">
           <img className="control-avatar" src="/sprites/robot-portrait.png" alt="" />
-          <div className="control-identity"><small>UNIT 7</small><strong>THE BUILDER</strong></div>
-          <div className="control-shortcuts"><span><Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> MOVE</span><span><Key>Q</Key> BUILD</span></div>
+          <div className="control-identity"><small>Bolt</small><strong>Builder</strong></div>
+          <div className="control-shortcuts"><span><Key>A</Key><Key>D</Key> Move</span><span><Key>W</Key> Jump</span><span><Key>Q</Key> Build</span></div>
         </div>
-        <div className="co-op-tip"><span className="co-op-mark">✳</span><span>NO ONE ESCAPES ALONE</span></div>
         <div className="control-card ninja-card">
-          <div className="control-shortcuts"><span><Key>←</Key><Key>↑</Key><Key>→</Key> MOVE</span><span><Key>↑</Key><Key>↓</Key> CLIMB</span></div>
-          <div className="control-identity"><small>THE NINJA</small><strong>THE CLIMBER</strong></div>
+          <div className="control-shortcuts"><span><Key>←</Key><Key>→</Key> Move</span><span><Key>↑</Key> Jump / climb</span><span><Key>↓</Key> Down</span></div>
+          <div className="control-identity"><small>Ninja</small><strong>Climber</strong></div>
           <img className="control-avatar" src="/sprites/ninja-portrait.png" alt="" />
         </div>
       </section>
