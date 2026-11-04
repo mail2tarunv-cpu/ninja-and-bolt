@@ -7,13 +7,16 @@ const story = readFileSync('src/StoryModal.tsx','utf8')
 const failed = readFileSync('src/FailureModal.tsx','utf8')
 const css = readFileSync('src/index.css','utf8')
 
-test('failure hierarchy is headline first, visual scene second, retry is primary', () => {
-  assert.ok(failed.indexOf('failure-heading') < failed.indexOf('failure-image'))
-  assert.ok(failed.indexOf('failure-image') < failed.indexOf('failure-bottom'))
-  assert.ok(failed.includes('MISSION FAILED'))
-  assert.ok(failed.includes('FIELD NOTE'))
-  assert.ok(failed.includes('TRY AGAIN'))
-  assert.ok(app.includes('<FailureModal'))
+test('outcome cards retain coded feedback and a single retry action', () => {
+  const outcome = readFileSync('src/OutcomeCard.tsx', 'utf8')
+  assert.ok(outcome.includes('MISSION FAILED'))
+  assert.ok(outcome.includes('MISSION COMPLETE'))
+  assert.ok(outcome.includes('aria-describedby="outcome-description"'))
+  assert.ok(outcome.includes('Try again'))
+  assert.ok(failed.includes('MISSION TIP'))
+  assert.ok(failed.includes("'Bolt' : 'Ninja'"))
+  assert.ok(!failed.includes('REPLAY STORY'))
+  assert.ok(app.includes('<OutcomeCard success'))
 })
 
 test('story presents a concise cinematic card with coded navigation', () => {

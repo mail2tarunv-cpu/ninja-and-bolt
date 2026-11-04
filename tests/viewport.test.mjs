@@ -44,7 +44,7 @@ test('fullscreen onboarding is separate from in-canvas story, failure, win and p
   assert.ok(app.includes('mode={hasSeenIntro ? "popup" : "onboarding"}'))
   assert.ok(app.includes('className="pause-overlay"'))
   assert.ok(app.includes('<FailureModal'))
-  assert.ok(app.includes('className="results-overlay"'))
+  assert.ok(app.includes('<OutcomeCard success'))
 })
 
 test('pause freezes the timer and both characters, resume returns to gameplay', () => {

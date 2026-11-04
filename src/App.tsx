@@ -5,6 +5,7 @@ import { drawDistantFactory, drawAtmosphericHaze } from "./environmentDepth"
 import { drawKeyAsset, loadHallowayKit, drawHallowayBackground, drawHallowayPlatform, drawHallowayMovingLift, drawHallowayClimbWall } from "./hallowayArt"
 import StoryModal from "./StoryModal"
 import FailureModal from "./FailureModal"
+import OutcomeCard from "./OutcomeCard"
 import { GameSound } from "./sound"
 import { GRAVITY, moveWithPlatformCollisions, updateJumpAssist } from "./physics"
 
@@ -2300,103 +2301,18 @@ export default function App() {
               role={failureRole}
               hazard={failureHazard}
               onRetry={() => { reset(); sound.start() }}
-              onReturn={returnToHome}
             />
           )}
           {result && (
-            <div
-              className="results-overlay"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="results-title"
-            >
-              <section className="results-panel">
-                <header className="results-header">
-                  <span>HALLOWAY TOYS / EXTRACTION COMPLETE</span>
-                  <h2 id="results-title">NIGHT SHIFT OVER.</h2>
-                  <p>For the first time in thirty years, Unit 7 gets to go home.</p>
-                </header>
-
-                <div className="team-score" aria-live="polite">
-                  <small>YOUR TEAM SCORE</small>
-                  <strong>
-                    {animatedScore.toLocaleString()} <span>/ 1,000</span>
-                  </strong>
-                  {result.newBest ? (
-                    <div className="best-score new-best">
-                      NEW BEST SCORE!
-                      {result.previousBest > 0 && (
-                        <small>
-                          Previous best: {result.previousBest.toLocaleString()}
-                        </small>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="best-score">
-                      BEST SCORE: {result.previousBest.toLocaleString()}
-                    </div>
-                  )}
-                </div>
-
-                <div className="performance-grid">
-                  <article className="performance-card">
-                    <small>GEMS COLLECTED</small>
-                    <strong>
-                      {result.collectedGems} <span>/ 6</span>
-                    </strong>
-                    <div
-                      className="result-gems"
-                      aria-label={`${result.collectedGems} of 6 gems collected`}
-                    >
-                      {Array.from({ length: 6 }, (_, index) => (
-                        <i
-                          className={
-                            index < result.collectedGems ? "collected" : ""
-                          }
-                          style={{ animationDelay: `${500 + index * 80}ms` }}
-                          key={index}
-                          aria-hidden="true"
-                        >
-                          ◆
-                        </i>
-                      ))}
-                    </div>
-                  </article>
-
-                  <article className="performance-card">
-                    <small>COMPLETION TIME</small>
-                    <strong>{formatTime(result.elapsedMs)}</strong>
-                    <p>Speed bonus: +{result.speedBonus}</p>
-                  </article>
-                </div>
-
-                <div className="score-breakdown">
-                  <div>
-                    <span>Mission Complete</span>
-                    <strong>+200</strong>
-                  </div>
-                  <div>
-                    <span>Gems Collected</span>
-                    <strong>+{result.gemPoints}</strong>
-                  </div>
-                  <div>
-                    <span>Speed Bonus</span>
-                    <strong>+{result.speedBonus}</strong>
-                  </div>
-                </div>
-
-                <div className="result-actions">
-                  <button
-                    className="play-again"
-                    onClick={() => { reset(); sound.start() }}
-                    disabled={!resultsReady}
-                  >
-                    {resultsReady ? "▶ PLAY AGAIN" : "CALCULATING..."}
-                  </button>
-                  <button className="result-review" onClick={returnToHome}>↶ WATCH STORY</button>
-                </div>
-              </section>
-            </div>
+            <OutcomeCard success description="Bolt and Ninja escaped Halloway Toys together!" onRetry={() => { reset(); sound.start() }}>
+              <div className="outcome-stats">
+                <span><GameIcon name="gem" /> {result.collectedGems} / 6 gems</span>
+                <span><GameIcon name="clock" /> {formatTime(result.elapsedMs)}</span>
+              </div>
+              <p className="outcome-score">Team score: {animatedScore.toLocaleString()} / 1,000
+                {resultsReady && result.newBest && <strong>New best!</strong>}
+              </p>
+            </OutcomeCard>
           )}
         </div>
       </section>
