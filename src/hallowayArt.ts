@@ -8,6 +8,7 @@
  */
 const BASE = '/halloway/'
 const paths = {
+  painted: 'background/factory-refined.png',
   far: 'background/far_factory.svg',
   mid: 'background/mid_factory.svg',
   atmosphere: 'background/atmosphere.svg',
@@ -43,6 +44,11 @@ function ready(key: ArtKey): HTMLImageElement | undefined {
 
 /** Returns true once the new 3-layer environment has been painted. */
 export function drawHallowayBackground(ctx: CanvasRenderingContext2D) {
+  const painted = ready('painted')
+  if (painted) {
+    ctx.drawImage(painted, 0, 0, 1280, 720)
+    return true
+  }
   const far = ready('far')
   if (!far) return false
   ctx.save()

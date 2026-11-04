@@ -1,3 +1,4 @@
+import { drawFactoryLighting, drawHazardDetails, drawSteelButton, drawRefinedSign } from "./visualPolish"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { drawDistantFactory, drawAtmosphericHaze } from "./environmentDepth"
 import { loadHallowayKit, drawHallowayBackground, drawHallowayPlatform, drawHallowayMovingLift, drawHallowayClimbWall } from "./hallowayArt"
@@ -504,6 +505,12 @@ function drawCharacterSprite(
     drawHeight * (SPRITE_CELL.baseline / SPRITE_CELL.height)
 
   ctx.save()
+  if (player.grounded) {
+    ctx.fillStyle = "rgba(0,4,12,.4)"
+    ctx.beginPath(); ctx.ellipse(player.x+player.w/2, player.y+player.h, player.w*.48, 3, 0, 0, Math.PI*2); ctx.fill()
+  }
+  ctx.shadowColor = player.role === "robot" ? "rgba(255,214,139,.25)" : "rgba(190,153,255,.25)"
+  ctx.shadowBlur = 3
   ctx.translate(player.x + player.w / 2, 0)
   if (player.facing < 0) ctx.scale(-1, 1)
   ctx.drawImage(
@@ -521,16 +528,21 @@ function drawCharacterSprite(
 }
 
 function drawGem(ctx: CanvasRenderingContext2D, gem: Gem) {
-  const color = gem.role === "robot" ? "#ffe36d" : "#b69aff"
+  const gold = gem.role === "robot"
+  const x = gem.x + gem.w / 2, y = gem.y + gem.h / 2
   ctx.save()
-  ctx.translate(gem.x + gem.w / 2, gem.y + gem.h / 2)
-  ctx.rotate(Math.PI / 4)
-  ctx.shadowColor = color
-  ctx.shadowBlur = 17
-  ctx.fillStyle = color
-  ctx.fillRect(-9, -9, 18, 18)
-  ctx.fillStyle = "rgba(255,255,255,.7)"
-  ctx.fillRect(-7, -7, 6, 6)
+  ctx.shadowColor = gold ? "#ffd467" : "#b48aff"
+  ctx.shadowBlur = 7
+  const facet = (points: number[][], color: string) => {
+    ctx.fillStyle = color; ctx.beginPath()
+    points.forEach(([dx,dy], i) => i ? ctx.lineTo(x+dx,y+dy) : ctx.moveTo(x+dx,y+dy))
+    ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0
+  }
+  facet([[0,-12],[12,0],[0,12],[-12,0]], gold ? "#f3b93e" : "#9561d4")
+  facet([[0,-12],[0,1],[-12,0]], gold ? "#ffe896" : "#dcc5ff")
+  facet([[0,-12],[12,0],[0,1]], gold ? "#fff5c9" : "#f1e5ff")
+  facet([[0,1],[12,0],[0,12]], gold ? "#db9123" : "#854ec5")
+  facet([[0,-9],[4,-4],[0,0],[-4,-4]], "#fff9e8")
   ctx.restore()
 }
 
@@ -546,7 +558,7 @@ function drawKey(
   ctx.translate(x + 14, y + 14)
   ctx.rotate(-0.22)
   ctx.shadowColor = color
-  ctx.shadowBlur = 14
+  ctx.shadowBlur = 6
   ctx.strokeStyle = color
   ctx.lineWidth = 6
   ctx.lineCap = "round"
@@ -660,9 +672,15 @@ function drawExitDoor(
 function drawLever(ctx: CanvasRenderingContext2D, on: boolean) {
   const x = 954
   const y = 460
-  ctx.fillStyle = "#536b81"
+  const steel = ctx.createLinearGradient(x,y,x,y+18)
+  steel.addColorStop(0,"#8b9aa4"); steel.addColorStop(.3,"#526675"); steel.addColorStop(1,"#263846")
+  ctx.fillStyle = steel
   roundedRect(ctx, x, y, 38, 18, 4)
   ctx.fill()
+  ctx.fillStyle = "#172431"
+  ctx.beginPath(); ctx.arc(x+19,y+7,4,0,Math.PI*2); ctx.fill()
+  ctx.fillStyle = on ? "#8ef3e8" : "#daa958"
+  ctx.fillRect(x+5,y+8,3,2)
   ctx.strokeStyle = on ? "#5ce1e6" : "#ffca59"
   ctx.lineWidth = 6
   ctx.lineCap = "round"
@@ -682,14 +700,7 @@ function drawFloorButton(
   y: number,
   pressed: boolean,
 ) {
-  ctx.save()
-  ctx.fillStyle = pressed ? "#5ce1e6" : "#71889b"
-  ctx.shadowColor = pressed ? "#5ce1e6" : "transparent"
-  ctx.shadowBlur = pressed ? 14 : 0
-  roundedRect(ctx, x, y + (pressed ? 6 : 0), 58, pressed ? 6 : 12, 3)
-  ctx.fill()
-  ctx.shadowBlur = 0
-  ctx.restore()
+  drawSteelButton(ctx, x, y, pressed)
 }
 
 function drawToyPit(
@@ -1540,9 +1551,10 @@ function drawWorld(
   } else {
     // Keep a faint furnace pulse and factory identity without reintroducing clutter.
     ctx.save()
-    ctx.globalAlpha = .22
+    ctx.globalAlpha = .16
     drawFurnaceDepth(ctx, now)
-    drawFactorySign(ctx, now)
+    ctx.globalAlpha = 1
+    drawRefinedSign(ctx)
     ctx.restore()
   }
 
@@ -1553,10 +1565,14 @@ function drawWorld(
   ctx.strokeRect(8, 8, WORLD.width - 16, WORLD.height - 16)
   ctx.shadowBlur = 0
 
+  drawFactoryLighting(ctx)
+
   drawToyPit(ctx, GROUND_WATER, now, 0.4)
   drawToyPit(ctx, QUICKSAND, now, 2.1)
 
   solids.forEach((rect) => drawPlatform(ctx, rect))
+  drawHazardDetails(ctx, GROUND_WATER, now)
+  drawHazardDetails(ctx, QUICKSAND, now)
 
   // Marked vertical routes are reserved for the ninja.
   climbWalls.forEach((wall) => {
