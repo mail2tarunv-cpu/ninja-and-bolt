@@ -12,6 +12,7 @@ test('viewport shell stays in one screen without page scrolling', () => {
   assert.ok(shell.includes('--stage-width: min(calc(100vw - 24px), calc(177.7778dvh - 296px), 1640px)'))
   assert.ok(shell.includes('grid-template-rows: 40px auto 35px'))
   assert.ok(shell.includes('aspect-ratio: 16 / 9'))
+  assert.ok(!shell.includes('max-height: calc(100dvh - 110px)'), 'do not clip height-sized canvas');
 })
 
 test('responsive stage width leaves room for header, HUD and controls', () => {

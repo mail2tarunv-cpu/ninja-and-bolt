@@ -415,7 +415,7 @@ body { overscroll-behavior: none; }
   grid-template-rows: 44px auto;
   height: auto;
   min-height: 0;
-  max-height: calc(100dvh - 110px);
+  /* Sized by --stage-width; no second height clamp that could crop the canvas. */
   border: 1px solid rgba(118, 140, 151, .34);
   border-radius: 8px;
   overflow: hidden;
