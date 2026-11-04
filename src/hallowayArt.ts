@@ -9,6 +9,8 @@
 const BASE = '/halloway/'
 const paths = {
   painted: 'background/factory-refined.png',
+  goldKey: '../ui/key-bolt.svg',
+  purpleKey: '../ui/key-ninja.svg',
   far: 'background/far_factory.svg',
   mid: 'background/mid_factory.svg',
   atmosphere: 'background/atmosphere.svg',
@@ -26,6 +28,7 @@ type ArtKey = keyof typeof paths
 type Box = { x: number; y: number; w: number; h: number }
 const loaded: Partial<Record<ArtKey, HTMLImageElement>> = {}
 let startedLoading = false
+let softenedBackground: HTMLCanvasElement | undefined
 
 export function loadHallowayKit() {
   if (startedLoading || typeof Image === 'undefined') return
@@ -46,7 +49,17 @@ function ready(key: ArtKey): HTMLImageElement | undefined {
 export function drawHallowayBackground(ctx: CanvasRenderingContext2D) {
   const painted = ready('painted')
   if (painted) {
-    ctx.drawImage(painted, 0, 0, 1280, 720)
+    if (!softenedBackground) {
+      softenedBackground = document.createElement('canvas')
+      softenedBackground.width = 1280; softenedBackground.height = 720
+      const layer = softenedBackground.getContext('2d')!
+      layer.filter = 'blur(2.5px)'
+      layer.drawImage(painted, -6, -4, 1292, 728)
+      layer.filter = 'none'
+      layer.fillStyle = 'rgba(8, 18, 31, .24)'
+      layer.fillRect(0, 0, 1280, 720)
+    }
+    ctx.drawImage(softenedBackground, 0, 0)
     return true
   }
   const far = ready('far')
@@ -132,4 +145,11 @@ export function drawHallowayClimbWall(ctx: CanvasRenderingContext2D, rect: Box) 
   }
   ctx.restore()
   return true
+}
+
+export function drawKeyAsset(ctx: CanvasRenderingContext2D, rect: Box, purple: boolean) {
+ const asset = ready(purple ? 'purpleKey' : 'goldKey')
+ if (!asset) return false
+ ctx.drawImage(asset,rect.x-3,rect.y-3,rect.w+6,rect.h+6)
+ return true
 }

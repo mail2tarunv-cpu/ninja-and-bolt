@@ -1,7 +1,8 @@
+import GameIcon from "./GameIcon"
 import { drawFactoryLighting, drawHazardDetails, drawSteelButton, drawRefinedSign } from "./visualPolish"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { drawDistantFactory, drawAtmosphericHaze } from "./environmentDepth"
-import { loadHallowayKit, drawHallowayBackground, drawHallowayPlatform, drawHallowayMovingLift, drawHallowayClimbWall } from "./hallowayArt"
+import { drawKeyAsset, loadHallowayKit, drawHallowayBackground, drawHallowayPlatform, drawHallowayMovingLift, drawHallowayClimbWall } from "./hallowayArt"
 import StoryModal from "./StoryModal"
 import FailureModal from "./FailureModal"
 import { GameSound } from "./sound"
@@ -552,6 +553,7 @@ function drawKey(
   color = "#ffd65e",
   highlight = "#fff1aa",
 ) {
+  if (drawKeyAsset(ctx, key, color === "#b794ff")) return
   const x = key.x
   const y = key.y
   ctx.save()
@@ -2206,13 +2208,13 @@ export default function App() {
         </div>
         <div className="header-actions">
           <button className="topbar-secondary" onClick={() => { sound.play('ui'); setHelpOpen(true); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole)}>
-            How to play
+            <GameIcon name="help" /> How to play
           </button>
           <button className="topbar-secondary" onClick={toggleSound} aria-label={soundEnabled ? 'Mute music and sound effects' : 'Enable music and sound effects'}>
-            {soundEnabled ? '♪ Sound on' : '♪ Muted'}
+            <GameIcon name={soundEnabled ? "sound" : "mute"} /> {soundEnabled ? "Sound on" : "Muted"}
           </button>
           <button className="topbar-secondary pause-button" onClick={() => { sound.play('ui'); setHelpOpen(false); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole || pauseOpen)} aria-label="Pause mission" title="Pause (Esc)">
-            Ⅱ Pause
+            <GameIcon name="pause" /> Pause
           </button>
 
         </div>
@@ -2224,12 +2226,12 @@ export default function App() {
             <img className="hud-avatar" src="/sprites/robot-portrait.png" alt="" />
             <div className="hud-name"><strong>Bolt</strong></div>
             <span className="gem-count"><span aria-label={`${stats.robot} of 3 gems`}>{[0,1,2].map(i => <i key={i} className={i < stats.robot ? "gem-slot collected" : "gem-slot"}>◆</i>)}</span></span>
-            <span className="block-count">▣ {stats.blocks} blocks</span>
-            <span className={`key-progress ${stats.robotHasKey ? "found" : ""}`}><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="8" r="4"/><path d="m11 11 9 9m-4-4 3-3m-6 0 3-3"/></svg> {stats.robotHasKey ? "Key found" : "Find key"}</span>
+            <span className="block-count"><GameIcon name="blocks" /> {stats.blocks} blocks</span>
+            <span className={`key-progress ${stats.robotHasKey ? "found" : ""}`}><img className="key-asset" src="/ui/key-bolt.svg" alt="" /> {stats.robotHasKey ? "Key found" : "Find key"}</span>
           </div>
-          <div className="objective mission-timer"><small>TIME</small><strong>{formatTime(stats.elapsedMs)}</strong></div>
+          <div className="objective mission-timer"><small><GameIcon name="clock" /></small><strong>{formatTime(stats.elapsedMs)}</strong></div>
           <div className="player-status ninja-status">
-            <span className={`key-progress ${stats.ninjaHasKey ? "found" : ""}`}><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="8" r="4"/><path d="m11 11 9 9m-4-4 3-3m-6 0 3-3"/></svg> {stats.ninjaHasKey ? "Key found" : "Find key"}</span>
+            <span className={`key-progress ${stats.ninjaHasKey ? "found" : ""}`}><img className="key-asset" src="/ui/key-ninja.svg" alt="" /> {stats.ninjaHasKey ? "Key found" : "Find key"}</span>
             <span className="gem-count"><span aria-label={`${stats.ninja} of 3 gems`}>{[0,1,2].map(i => <i key={i} className={i < stats.ninja ? "gem-slot collected" : "gem-slot"}>◆</i>)}</span></span>
             <div className="hud-name"><strong>Ninja</strong></div>
             <img className="hud-avatar" src="/sprites/ninja-portrait.png" alt="" />
@@ -2251,19 +2253,45 @@ export default function App() {
           )}
           {pauseOpen && !storyOpen && !failureRole && !result && (
             <div className="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title">
-              <section className="pause-panel">
-                <span className="pause-kicker">HALLOWAY TOY WORKS / MISSION 01</span>
-                <h2 id="pause-title">{helpOpen ? "How to play" : "Ⅱ PAUSED"}</h2>
-                {helpOpen && <div className="help-controls"><p><strong>Bolt</strong> · A / D to move · W to jump · Q to build</p><p><strong>Ninja</strong> · ← / → to move · ↑ to jump or climb · ↓ to climb down</p><p>Collect your own key, then reach both exit doors together. Build from the edge of a gap or your newest block.</p></div>}
+              <section className={`pause-panel refined-panel ${helpOpen ? 'help-panel' : ''}`} onKeyDown={event => {
+                  if (event.key !== 'Tab') return
+                  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+                  const first = buttons[0], last = buttons[buttons.length - 1]
+                  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+                  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+                }}>
+                <button className="panel-close" aria-label="Back to game" autoFocus onClick={() => setPauseOpen(false)}><GameIcon name="close" /></button>
+                <header className="panel-heading">
+                  <span className="panel-emblem"><GameIcon name={helpOpen ? "help" : "pause"} /></span>
+                  <div><span className="pause-kicker">BETTER TOGETHER</span><h2 id="pause-title">{helpOpen ? "Two heroes. One escape." : "Take a breather."}</h2></div>
+                </header>
+                {helpOpen ? <>
+                  <p className="help-intro">Share a keyboard. Use your different abilities to get home.</p>
+                  <div className="hero-guides">
+                    <article className="hero-guide bolt-guide">
+                      <header><img src="/sprites/robot-portrait.png" alt=""/><div><h3>Bolt</h3><span>The builder</span></div></header>
+                      <dl><div><dt>Move</dt><dd><Key>A</Key><Key>D</Key></dd></div><div><dt>Jump</dt><dd><Key>W</Key></dd></div><div><dt>Build a bridge</dt><dd><Key>Q</Key></dd></div></dl>
+                      <p>Build at a gap’s edge. Step onto your newest block to keep building.</p>
+                    </article>
+                    <article className="hero-guide ninja-guide">
+                      <header><img src="/sprites/ninja-portrait.png" alt=""/><div><h3>Ninja</h3><span>The climber</span></div></header>
+                      <dl><div><dt>Move</dt><dd><Key>←</Key><Key>→</Key></dd></div><div><dt>Jump / climb up</dt><dd><Key>↑</Key></dd></div><div><dt>Climb down</dt><dd><Key>↓</Key></dd></div></dl>
+                      <p>Climb the purple-marked wall to reach places Bolt can’t.</p>
+                    </article>
+                  </div>
+                  <div className="help-objective"><div className="objective-keys"><img src="/ui/key-bolt.svg" alt=""/><img src="/ui/key-ninja.svg" alt=""/></div><p><strong>Find your keys. Escape together.</strong><span>Each hero needs their own key and exit door.</span></p><GameIcon name="exit" /></div>
+                </> : <p className="help-intro">Your adventure will be right here.</p>}
                 <div className="pause-actions">
-                  <button className="pause-primary" onClick={() => { sound.play('ui'); setPauseOpen(false) }}>{helpOpen ? "Back to game" : "▶ RESUME MISSION"}</button>
-                  {!helpOpen && <button onClick={() => { setHelpOpen(true) }}>How to play</button>}
-                  <button onClick={() => { sound.play('ui'); reset(); sound.start() }}>↻ RESTART MISSION</button>
-                  <button onClick={() => { sound.play('ui'); setPauseOpen(false); setStoryOpen(true) }}>▤ READ STORY</button>
-                  <button onClick={toggleSound}>{soundEnabled ? '♪ MUTE AUDIO' : '♪ ENABLE AUDIO'}</button>
-                  <button onClick={returnToHome}>⌂ BACK TO INTRO</button>
+                  <button className="pause-primary" onClick={() => { sound.play('ui'); setPauseOpen(false) }}><GameIcon name="play" /> {helpOpen ? "Let’s play" : "Resume mission"}</button>
+                  {!helpOpen && <div className="pause-menu-grid">
+                    <button onClick={() => setHelpOpen(true)}><GameIcon name="help" /> How to play</button>
+                    <button onClick={() => { reset(); sound.start() }}><GameIcon name="restart" /> Restart</button>
+                    <button onClick={() => { setPauseOpen(false); setStoryOpen(true) }}><GameIcon name="story" /> Story</button>
+                    <button onClick={toggleSound}><GameIcon name={soundEnabled ? "sound" : "mute"} /> {soundEnabled ? 'Mute sound' : 'Enable sound'}</button>
+                    <button onClick={returnToHome}><GameIcon name="home" /> Back to intro</button>
+                  </div>}
                 </div>
-                <small>ESC TO RESUME</small>
+                <footer className="panel-footnote"><Key>Esc</Key> Back to game</footer>
               </section>
             </div>
           )}
