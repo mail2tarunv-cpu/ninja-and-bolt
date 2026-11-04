@@ -1,51 +1,44 @@
 import { useEffect, useRef, useState } from 'react'
 
+type StoryMode = 'onboarding' | 'popup'
 type StoryModalProps = {
+  mode?: StoryMode
   onBegin: () => void
   onNavigate: () => void
 }
 
-type StorySlide = {
-  eyebrow: string
-  title: string
-  description: string
-  image: string
-  alt: string
-}
-
-const STORY: StorySlide[] = [
+const STORY = [
   {
     eyebrow: '01 / THE FACTORY',
-    title: 'Thirty years. Still waiting.',
-    description: 'Halloway Toy Works closed its doors. The machines never stopped. And Unit 7 never stopped waiting for someone to come back.',
+    title: 'The factory never stopped.',
+    description: 'Thirty years ago, everyone left Halloway Toy Works. The machines kept running. And Unit 7 kept waiting.',
     image: '/story/unit-7.jpg',
-    alt: 'Unit 7 standing alone among abandoned machinery in the toy factory.',
+    alt: 'Unit 7 standing alone in an abandoned toy factory.',
   },
   {
-    eyebrow: '02 / THE RESCUE',
+    eyebrow: '02 / THE TEAM',
     title: 'Someone came back.',
-    description: 'The Ninja found Unit 7. One can climb the walls. The other can build a way across. Neither gets out alone.',
+    description: 'The Ninja has come to bring Unit 7 home. One climbs walls. The other builds paths. Neither can escape alone.',
     image: '/story/rescue.jpg',
-    alt: 'The Ninja reaching out to Unit 7 beneath the old factory lights.',
+    alt: 'The Ninja reaching Unit 7 inside the old factory.',
   },
   {
-    eyebrow: '03 / YOUR MISSION',
+    eyebrow: '03 / THE MISSION',
     title: 'Get them both home.',
-    description: 'Find a key for each character, collect gems for your score, and get them both to the exit doors. Watch the factory floor.',
+    description: 'Collect gems, recover both keys, and reach the two exits. Keep an eye on the sinking toy pits.',
     image: '/story/escape-plan.jpg',
-    alt: 'The Ninja and Unit 7 working together to reach the factory exit.',
+    alt: 'The Ninja and Unit 7 activating the escape lift together.',
   },
-]
+] as const
 
-export default function StoryModal({ onBegin, onNavigate }: StoryModalProps) {
+export default function StoryModal({ mode = 'onboarding', onBegin, onNavigate }: StoryModalProps) {
   const [page, setPage] = useState(0)
   const titleRef = useRef<HTMLHeadingElement>(null)
-  const slide = STORY[page]
   const lastPage = STORY.length - 1
+  const slide = STORY[page]
+  const isIntro = mode === 'onboarding'
 
-  useEffect(() => {
-    titleRef.current?.focus()
-  }, [page])
+  useEffect(() => { titleRef.current?.focus() }, [page, mode])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -55,11 +48,14 @@ export default function StoryModal({ onBegin, onNavigate }: StoryModalProps) {
       } else if (event.code === 'ArrowRight' && page < lastPage) {
         event.preventDefault()
         onNavigate()
-        setPage((current) => current + 1)
+        setPage(v => v + 1)
       } else if (event.code === 'ArrowLeft' && page > 0) {
         event.preventDefault()
         onNavigate()
-        setPage((current) => current - 1)
+        setPage(v => v - 1)
+      } else if (event.code === 'Enter' && page === lastPage) {
+        event.preventDefault()
+        onBegin()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -72,15 +68,18 @@ export default function StoryModal({ onBegin, onNavigate }: StoryModalProps) {
   }
 
   return (
-    <div className="story-overlay" role="dialog" aria-modal="true" aria-labelledby="story-title" aria-describedby="story-description">
-      <section className="story-card">
+    <div className={`story-overlay ${isIntro ? 'is-onboarding' : 'is-popup'}`}
+      role="dialog" aria-modal="true" aria-labelledby="story-title" aria-describedby="story-description">
+      <section className={`story-card ${isIntro ? 'story-onboarding' : 'story-popup'}`}>
         <div className="story-art">
           <img key={slide.image} src={slide.image} alt={slide.alt} />
           <header className="story-art-header">
             <span><span className="story-lamp" aria-hidden="true" /> HALLOWAY TOY WORKS</span>
-            <button className="story-skip" type="button" onClick={onBegin}>SKIP INTRO <span aria-hidden="true">×</span></button>
+            <button className="story-skip" type="button" onClick={onBegin}>
+              {isIntro ? 'SKIP INTRO' : 'CLOSE'} <span aria-hidden="true">×</span>
+            </button>
           </header>
-          <div className="story-image-caption" aria-hidden="true">A STORY OF TWO UNLIKELY PARTNERS</div>
+          <div className="story-image-caption" aria-hidden="true">NINJA & BOLT / CO-OP RESCUE</div>
         </div>
 
         <div className="story-editorial">
@@ -96,7 +95,9 @@ export default function StoryModal({ onBegin, onNavigate }: StoryModalProps) {
                 <div><img src="/sprites/robot-portrait.png" alt="" /><span><strong>UNIT 7</strong><small>Q BUILD CRATES</small></span></div>
               </div>
             ) : page === 2 ? (
-              <div className="story-checks" aria-label="Mission checklist"><span>◆ COLLECT GEMS</span><span>⌕ FIND BOTH KEYS</span><span>⇥ REACH BOTH EXITS</span></div>
+              <div className="story-checks" aria-label="Mission checklist">
+                <span>◆ COLLECT GEMS</span><span>⌕ FIND BOTH KEYS</span><span>⇥ REACH BOTH EXITS</span>
+              </div>
             ) : (
               <div className="story-stamp"><strong>UNIT 07</strong><span>AWAITING RESCUE</span></div>
             )}
@@ -104,18 +105,18 @@ export default function StoryModal({ onBegin, onNavigate }: StoryModalProps) {
         </div>
 
         <footer className="story-footer">
-          <div className="story-pagination" aria-label={'Scene ' + (page + 1) + ' of ' + STORY.length}>
+          <div className="story-pagination" aria-label={`Scene ${page + 1} of ${STORY.length}`}>
             <span>0{page + 1} <em>/ 0{STORY.length}</em></span>
             <div className="story-progress-bars" aria-hidden="true">
               {STORY.map((_, i) => <i key={i} className={i <= page ? 'is-active' : ''} />)}
             </div>
           </div>
           <div className="story-actions">
-            {page > 0 && <button className="story-back" onClick={() => go(page - 1)}>BACK</button>}
+            {page > 0 && <button className="story-back" type="button" onClick={() => go(page - 1)}>BACK</button>}
             {page < lastPage ? (
-              <button className="story-next" onClick={() => go(page + 1)}>NEXT SCENE <span aria-hidden="true">→</span></button>
+              <button className="story-next" type="button" onClick={() => go(page + 1)}>NEXT SCENE <span aria-hidden="true">→</span></button>
             ) : (
-              <button className="story-next" onClick={onBegin}>BEGIN RESCUE <span aria-hidden="true">→</span></button>
+              <button className="story-next" type="button" onClick={onBegin}>{isIntro ? 'BEGIN RESCUE' : 'BACK TO GAME'} <span aria-hidden="true">→</span></button>
             )}
           </div>
         </footer>

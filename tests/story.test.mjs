@@ -18,12 +18,14 @@ for (const name of ['unit-7.jpg', 'rescue.jpg', 'escape-plan.jpg', 'teamwork.jpg
 
 test('story starts frozen, introduces both abilities, and can be reopened', () => {
   assert.ok(app.includes('useState(true)'))
-  assert.ok(app.includes('if (!storyOpen && !game.won'))
+  assert.ok(app.includes('if (!storyOpen && !pauseOpen && !game.won'))
   assert.ok(app.includes('pauseMissionTimer(game, now)'))
   assert.ok(app.includes('setStoryOpen(true)'))
   assert.ok(story.includes('CLIMB WALLS'))
   assert.ok(story.includes('BUILD CRATES'))
   assert.ok(story.includes('BEGIN RESCUE'))
+  assert.ok(story.includes("mode = 'onboarding'"))
+  assert.ok(app.includes('mode={hasSeenIntro ? "popup" : "onboarding"}'))
 })
 
 test('audio is generated locally with distinct music and game event cues', () => {

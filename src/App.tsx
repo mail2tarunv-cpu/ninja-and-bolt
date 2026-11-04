@@ -1612,38 +1612,7 @@ function drawWorld(
   drawCharacterSprite(ctx, game.robot, atlases, now)
   drawCharacterSprite(ctx, game.ninja, atlases, now)
 
-  if (!game.started) {
-    // Keep the level visible and readable before the first input.
-    ctx.save()
-    ctx.fillStyle = "rgba(5, 12, 20, .27)"
-    ctx.fillRect(0, 0, WORLD.width, WORLD.height)
-    const prompt = { x: WORLD.width / 2 - 227, y: 295, w: 454, h: 116 }
-    const surface = ctx.createLinearGradient(0, prompt.y, 0, prompt.y + prompt.h)
-    surface.addColorStop(0, "rgba(17, 29, 40, .97)")
-    surface.addColorStop(1, "rgba(9, 17, 29, .96)")
-    ctx.shadowColor = "rgba(1, 5, 9, .6)"
-    ctx.shadowBlur = 26
-    ctx.shadowOffsetY = 12
-    ctx.fillStyle = surface
-    roundedRect(ctx, prompt.x, prompt.y, prompt.w, prompt.h, 12)
-    ctx.fill()
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
-    ctx.strokeStyle = "rgba(136, 161, 170, .32)"
-    ctx.lineWidth = 1.25
-    ctx.stroke()
-    ctx.textAlign = "center"
-    ctx.fillStyle = "#e5b47a"
-    ctx.font = "800 11px Inter, sans-serif"
-    ctx.fillText("HALLOWAY TOY WORKS  /  RESCUE 01", WORLD.width / 2, prompt.y + 25)
-    ctx.fillStyle = "#f3f7fa"
-    ctx.font = "800 27px Inter, sans-serif"
-    ctx.fillText("READY TO ESCAPE?", WORLD.width / 2, prompt.y + 59)
-    ctx.fillStyle = "#a9bdca"
-    ctx.font = "600 14px Inter, sans-serif"
-    ctx.fillText("Move either character to begin", WORLD.width / 2, prompt.y + 89)
-    ctx.restore()
-  }
+  // The cinematic onboarding is the sole start presentation; no second dark overlay.
 }
 
 function movePlayer(
@@ -1896,6 +1865,8 @@ export default function App() {
   const [animatedScore, setAnimatedScore] = useState(0)
   const [resultsReady, setResultsReady] = useState(false)
   const [storyOpen, setStoryOpen] = useState(true)
+  const [hasSeenIntro, setHasSeenIntro] = useState(false)
+  const [pauseOpen, setPauseOpen] = useState(false)
   const [sound] = useState(() => new GameSound())
   const [soundEnabled, setSoundEnabled] = useState(() => sound.isEnabled())
   const soundsPreviousRef = useRef({
@@ -1936,27 +1907,35 @@ export default function App() {
     setFailureHazard("quicksand")
     setAnimatedScore(0)
     setResultsReady(false)
+    setPauseOpen(false)
   }, [])
   const returnToHome = useCallback(() => {
     sound.stop()
     reset()
+    setHasSeenIntro(false)
     setStoryOpen(true)
+    setPauseOpen(false)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [reset, sound])
 
   useEffect(() => {
     const game = gameRef.current
     const now = performance.now()
-    if (storyOpen) {
+    if (storyOpen || pauseOpen) {
       pauseMissionTimer(game, now)
       game.keys.clear()
-    } else if (!result && !failureRole) {
+    } else if (!result && !failureRole && !document.hidden) {
       resumeMissionTimer(game, now)
       game.lastTime = now
     }
-  }, [storyOpen, result, failureRole])
+  }, [storyOpen, pauseOpen, result, failureRole])
 
   useEffect(() => () => sound.destroy(), [sound])
+
+  useEffect(() => {
+    if (pauseOpen) sound.stop()
+    else if (!storyOpen && !result && !failureRole && gameRef.current.started && !document.hidden) sound.start()
+  }, [pauseOpen, storyOpen, result, failureRole, sound])
 
   const toggleSound = useCallback(() => {
     const next = !sound.isEnabled()
@@ -2037,7 +2016,13 @@ export default function App() {
         if (!storyOpen) { reset(); sound.start() }
         return
       }
-      if (storyOpen || game.won || game.failedRole) return
+      if (event.code === "Escape" && !storyOpen && !game.won && !game.failedRole) {
+        event.preventDefault()
+        setPauseOpen(open => !open)
+        sound.play('ui')
+        return
+      }
+      if (storyOpen || pauseOpen || game.won || game.failedRole) return
       if (controlledKeys.has(event.code))
         startMissionTimer(game, performance.now())
       game.keys.add(event.code)
@@ -2055,9 +2040,9 @@ export default function App() {
         game.keys.clear()
         sound.stop()
       } else {
-        if (!storyOpen) {
+        if (!storyOpen && !pauseOpen && !game.won && !game.failedRole) {
           resumeMissionTimer(game, now)
-          if (game.started && !game.won && !game.failedRole) sound.start()
+          if (game.started) sound.start()
         }
         game.lastTime = now
       }
@@ -2069,9 +2054,9 @@ export default function App() {
       const game = gameRef.current
       const dt = Math.min((time - game.lastTime) / 1000, 0.035)
       game.lastTime = time
-      if (!storyOpen && !game.won && !game.failedRole && !game.paused) updateGame(game, dt)
+      if (!storyOpen && !pauseOpen && !game.won && !game.failedRole && !game.paused) updateGame(game, dt)
 
-      if (!storyOpen && !game.won && !game.failedRole) {
+      if (!storyOpen && !pauseOpen && !game.won && !game.failedRole) {
         const old = soundsPreviousRef.current
         const gems = game.gems.filter(gem => gem.collected).length
         if (gems > old.gems) sound.play('gem')
@@ -2165,7 +2150,7 @@ export default function App() {
       window.removeEventListener("keyup", keyup)
       document.removeEventListener("visibilitychange", visibilitychange)
     }
-  }, [reset, storyOpen, sound])
+  }, [reset, storyOpen, pauseOpen, sound])
 
   return (
     <main className="app-shell">
@@ -2185,11 +2170,14 @@ export default function App() {
           <strong>MISSION 01 / ESCAPE</strong>
         </div>
         <div className="header-actions">
-          <button className="topbar-secondary" onClick={() => { sound.play('ui'); setStoryOpen(true) }} disabled={Boolean(result || failureRole)}>
+          <button className="topbar-secondary" onClick={() => { sound.play('ui'); setPauseOpen(false); setStoryOpen(true) }} disabled={Boolean(result || failureRole)}>
             STORY
           </button>
           <button className="topbar-secondary" onClick={toggleSound} aria-label={soundEnabled ? 'Mute music and sound effects' : 'Enable music and sound effects'}>
             {soundEnabled ? '♪ SOUND ON' : '♪ MUTED'}
+          </button>
+          <button className="topbar-secondary pause-button" onClick={() => { sound.play('ui'); setPauseOpen(true) }} disabled={Boolean(storyOpen || result || failureRole || pauseOpen)} aria-label="Pause mission" title="Pause (Esc)">
+            Ⅱ PAUSE
           </button>
           <button className="reset-button" onClick={() => { reset(); sound.start() }}>
             RESET <Key>R</Key>
@@ -2223,9 +2211,27 @@ export default function App() {
           />
           {storyOpen && (
             <StoryModal
+              mode={hasSeenIntro ? "popup" : "onboarding"}
               onNavigate={() => sound.play('ui')}
-              onBegin={() => { sound.play('ui'); sound.start(); setStoryOpen(false) }}
+              onBegin={() => { sound.play('ui'); sound.start(); setHasSeenIntro(true); setStoryOpen(false) }}
             />
+          )}
+          {pauseOpen && !storyOpen && !failureRole && !result && (
+            <div className="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+              <section className="pause-panel">
+                <span className="pause-kicker">HALLOWAY TOY WORKS / MISSION 01</span>
+                <h2 id="pause-title">Ⅱ PAUSED</h2>
+                <p>The factory can keep running without you. Take your time.</p>
+                <div className="pause-actions">
+                  <button className="pause-primary" onClick={() => { sound.play('ui'); setPauseOpen(false) }}>▶ RESUME MISSION</button>
+                  <button onClick={() => { sound.play('ui'); reset(); sound.start() }}>↻ RESTART MISSION</button>
+                  <button onClick={() => { sound.play('ui'); setPauseOpen(false); setStoryOpen(true) }}>▤ READ STORY</button>
+                  <button onClick={toggleSound}>{soundEnabled ? '♪ MUTE AUDIO' : '♪ ENABLE AUDIO'}</button>
+                  <button onClick={returnToHome}>⌂ BACK TO INTRO</button>
+                </div>
+                <small>ESC TO RESUME</small>
+              </section>
+            </div>
           )}
           {failureRole && (
             <FailureModal
@@ -2317,13 +2323,16 @@ export default function App() {
                   </div>
                 </div>
 
-                <button
-                  className="play-again"
-                  onClick={() => { reset(); sound.start() }}
-                  disabled={!resultsReady}
-                >
-                  {resultsReady ? "PLAY AGAIN" : "CALCULATING..."}
-                </button>
+                <div className="result-actions">
+                  <button
+                    className="play-again"
+                    onClick={() => { reset(); sound.start() }}
+                    disabled={!resultsReady}
+                  >
+                    {resultsReady ? "▶ PLAY AGAIN" : "CALCULATING..."}
+                  </button>
+                  <button className="result-review" onClick={returnToHome}>↶ WATCH STORY</button>
+                </div>
               </section>
             </div>
           )}
