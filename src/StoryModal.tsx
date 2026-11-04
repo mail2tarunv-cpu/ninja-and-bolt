@@ -5,93 +5,116 @@ type StoryModalProps = {
   onNavigate: () => void
 }
 
-type Slide = {
-  kicker: string
-  title: string
-  description: string
-  image: string
-  imageAlt: string
-}
-
-const STORY: Slide[] = [
+const STORY = [
   {
-    kicker: 'HALLOWAY TOY WORKS  /  30 YEARS LATER',
+    kicker: '01  /  HALLOWAY TOY WORKS',
     title: 'The night shift never ended.',
-    description: 'Thirty years ago, the furnaces overheated and everyone ran. The machines never stopped. And somewhere inside, Unit 7 kept waiting for someone to come back.',
+    description: 'Thirty years ago, the factory was abandoned. The machines kept running. And Unit 7 kept waiting.',
     image: '/story/unit-7.jpg',
-    imageAlt: 'Unit 7 waits alone among the abandoned toy factory machinery.',
+    alt: 'Unit 7 waiting alone in the abandoned factory.',
   },
   {
-    kicker: 'TWO UNLIKELY PARTNERS',
+    kicker: '02  /  AN UNLIKELY PAIR',
     title: 'Someone finally came back.',
-    description: 'A ninja has entered the factory to bring Unit 7 home. One can climb where the other cannot. One can build the bridges the other needs.',
+    description: 'The Ninja climbs where Unit 7 cannot. Unit 7 builds the bridges the Ninja needs.',
     image: '/story/rescue.jpg',
-    imageAlt: 'A hooded ninja meets Unit 7 under the lights of the old factory.',
+    alt: 'The Ninja reaches out to Unit 7 in the abandoned factory.',
   },
   {
-    kicker: 'MISSION 01  /  THE WAY OUT',
-    title: 'No one escapes alone.',
-    description: 'Build a path over broken toys, climb to the switches, collect gems for your team score, find each character’s key, and reach both escape doors.',
+    kicker: '03  /  THE RESCUE',
+    title: 'One way out. Together.',
+    description: 'Collect gems, find both keys and reach the exit doors. Nobody escapes alone.',
     image: '/story/escape-plan.jpg',
-    imageAlt: 'Ninja and Unit 7 work together to activate the factory escape system.',
+    alt: 'The Ninja and Unit 7 activating a lift in the factory.',
   },
-]
+] as const
 
 export default function StoryModal({ onBegin, onNavigate }: StoryModalProps) {
   const [page, setPage] = useState(0)
-  const titleRef = useRef<HTMLHeadingElement>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const lastPage = STORY.length - 1
   const slide = STORY[page]
 
   useEffect(() => {
-    titleRef.current?.focus()
+    headingRef.current?.focus()
   }, [page])
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.code === 'Escape') {
+        event.preventDefault()
+        onBegin()
+      }
+      if (event.code === 'ArrowRight' && page < lastPage) {
+        event.preventDefault()
+        onNavigate()
+        setPage((value) => value + 1)
+      }
+      if (event.code === 'ArrowLeft' && page > 0) {
+        event.preventDefault()
+        onNavigate()
+        setPage((value) => value - 1)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [lastPage, onBegin, onNavigate, page])
 
   return (
     <div className="story-overlay" role="dialog" aria-modal="true" aria-labelledby="story-title" aria-describedby="story-description">
-      <section className="story-panel">
-        <div className="story-scene" key={slide.image}>
-          <img src={slide.image} alt={slide.imageAlt} />
-          <div className="story-photo-fade" />
-          <span className="story-scene-tag">FILE 07 — HALLOWAY TOY WORKS</span>
+      <section className="story-stage">
+        <div className="story-stage-art" key={slide.image}>
+          <img src={slide.image} alt={slide.alt} />
         </div>
-        <div className="story-body">
-          <div className="story-progress" aria-label={`Story page ${page + 1} of 3`}>
-            <span>0{page + 1} / 03</span>
+        <div className="story-stage-shade" aria-hidden="true" />
+
+        <header className="story-topline">
+          <span className="story-series"><span className="story-series-mark" aria-hidden="true">✳</span> HALLOWAY TOY WORKS <span className="story-series-divider">/</span> RESCUE FILE 07</span>
+          <button className="story-skip" onClick={onBegin}>SKIP INTRO <span aria-hidden="true">↗</span></button>
+        </header>
+
+        <div className="story-presentation">
+          <div className="story-copy" key={slide.title}>
+            <span className="story-kicker">{slide.kicker}</span>
+            <h2 ref={headingRef} tabIndex={-1} id="story-title">{slide.title}</h2>
+            <p id="story-description">{slide.description}</p>
+
+            {page === 1 && (
+              <div className="story-abilities" aria-label="Character abilities">
+                <div className="story-ability">
+                  <img src="/sprites/ninja-portrait.png" alt="" />
+                  <span><b>THE NINJA</b><small>↑ CLIMB WALLS</small></span>
+                </div>
+                <div className="story-ability">
+                  <img src="/sprites/robot-portrait.png" alt="" />
+                  <span><b>UNIT 7</b><small>Q BUILD CRATES</small></span>
+                </div>
+              </div>
+            )}
+            {page === 2 && (
+              <div className="story-objectives" aria-label="Mission objectives">
+                <span>◇ 6 GEMS</span><span>⚿ 2 KEYS</span><span>⇥ 2 EXITS</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <footer className="story-bottomline">
+          <div className="story-page-count" aria-label={`Slide ${page + 1} of ${STORY.length}`}>
+            <strong>0{page + 1}</strong><span> / 0{STORY.length}</span>
             <div className="story-progress-bars" aria-hidden="true">
-              {STORY.map((_, i) => <span key={i} className={i <= page ? 'is-active' : ''} />)}
+              {STORY.map((_, index) => <i key={index} className={index <= page ? 'is-active' : ''} />)}
             </div>
           </div>
-          <span className="story-kicker">{slide.kicker}</span>
-          <h2 id="story-title" ref={titleRef} tabIndex={-1}>{slide.title}</h2>
-          <p id="story-description">{slide.description}</p>
-
-          {page === 1 && (
-            <div className="story-characters">
-              <article>
-                <img src="/sprites/ninja-portrait.png" alt="The Ninja" />
-                <div><small>THE NINJA</small><strong>Climbs walls</strong><span>Arrow keys to move and climb</span></div>
-              </article>
-              <article>
-                <img src="/sprites/robot-portrait.png" alt="Unit 7" />
-                <div><small>UNIT 7</small><strong>Builds blocks</strong><span>WASD to move · Q to build</span></div>
-              </article>
-            </div>
-          )}
-          {page === 2 && (
-            <div className="story-checklist" aria-label="Mission objectives">
-              <span>✦ COLLECT GEMS</span><span>⚿ FIND BOTH KEYS</span><span>⇥ REACH THE EXITS</span>
-            </div>
-          )}
           <div className="story-actions">
-            <button className="story-back" disabled={page === 0} onClick={() => { onNavigate(); setPage(p => Math.max(0, p - 1)) }}>BACK</button>
-            {page < STORY.length - 1 ? (
-              <button className="story-next" onClick={() => { onNavigate(); setPage(p => Math.min(STORY.length - 1, p + 1)) }}>NEXT <span aria-hidden="true">→</span></button>
+            <button className="story-back" onClick={() => { onNavigate(); setPage((value) => Math.max(0, value - 1)) }} disabled={page === 0}>BACK</button>
+            {page < lastPage ? (
+              <button className="story-next" onClick={() => { onNavigate(); setPage((value) => Math.min(lastPage, value + 1)) }}>CONTINUE <span aria-hidden="true">→</span></button>
             ) : (
               <button className="story-next" onClick={onBegin}>BEGIN RESCUE <span aria-hidden="true">→</span></button>
             )}
           </div>
-          {page < STORY.length - 1 && <button className="story-skip" onClick={onBegin}>SKIP INTRO</button>}
-        </div>
+        </footer>
       </section>
     </div>
   )

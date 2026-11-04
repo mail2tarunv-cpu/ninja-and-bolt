@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import StoryModal from "./StoryModal"
+import FailureModal from "./FailureModal"
 import { GameSound } from "./sound"
 import { GRAVITY, moveWithPlatformCollisions, updateJumpAssist } from "./physics"
 
@@ -2159,18 +2160,20 @@ export default function App() {
             <span />
           </div>
           <div>
-            <h1>Ninjabot escape</h1>
+            <h1>NINJA <span>&</span> BOLT</h1>
           </div>
         </div>
         <div className="mission">
-          <strong>Mission 1</strong>
+          <span className="mission-indicator" aria-hidden="true" />
+          <span>HALLOWAY TOY WORKS</span>
+          <strong>MISSION 01 / ESCAPE</strong>
         </div>
         <div className="header-actions">
           <button className="topbar-secondary" onClick={() => { sound.play('ui'); setStoryOpen(true) }} disabled={Boolean(result || failureRole)}>
             STORY
           </button>
           <button className="topbar-secondary" onClick={toggleSound} aria-label={soundEnabled ? 'Mute music and sound effects' : 'Enable music and sound effects'}>
-            {soundEnabled ? 'SOUND ON' : 'SOUND OFF'}
+            {soundEnabled ? '♪ SOUND ON' : '♪ MUTED'}
           </button>
           <button className="reset-button" onClick={() => { reset(); sound.start() }}>
             RESET <Key>R</Key>
@@ -2179,44 +2182,20 @@ export default function App() {
       </header>
 
       <section className="game-frame">
-        <div className="status-strip">
+        <div className="status-strip" aria-label="Mission status">
           <div className="player-status robot-status">
-            <span className="status-dot" />
-            <div>
-              <strong>ROBOT</strong>
-            </div>
-            <span className="gem-count">
-              <span>GEMS COLLECTED</span>
-              <strong>◆ {stats.robot}/3</strong>
-            </span>
-            {stats.robotHasKey && (
-              <span className="key-status">
-                <i aria-hidden="true" />
-                KEY
-              </span>
-            )}
-            <span className="block-count">{stats.blocks} BLOCKS</span>
+            <img className="hud-avatar" src="/sprites/robot-portrait.png" alt="" />
+            <div className="hud-name"><small>PLAYER 01</small><strong>UNIT 7</strong></div>
+            <span className="gem-count"><span>GEMS</span><strong>◆ {stats.robot}/3</strong></span>
+            <span className="block-count">▣ {stats.blocks} BLOCKS</span>
+            {stats.robotHasKey && <span className="key-status"><i aria-hidden="true" /> KEY</span>}
           </div>
-          <div className="objective mission-timer">
-            <small>MISSION TIME</small>
-            <strong>{formatTime(stats.elapsedMs)}</strong>
-          </div>
+          <div className="objective mission-timer"><small>TIME INSIDE THE FACTORY</small><strong>{formatTime(stats.elapsedMs)}</strong></div>
           <div className="player-status ninja-status">
-            <span className="block-count">WALL CLIMB</span>
-            {stats.ninjaHasKey && (
-              <span className="key-status ninja-key">
-                <i aria-hidden="true" />
-                KEY
-              </span>
-            )}
-            <span className="gem-count">
-              <span>GEMS COLLECTED</span>
-              <strong>◆ {stats.ninja}/3</strong>
-            </span>
-            <div>
-              <strong>NINJA</strong>
-            </div>
-            <span className="status-dot" />
+            {stats.ninjaHasKey && <span className="key-status ninja-key"><i aria-hidden="true" /> KEY</span>}
+            <span className="gem-count"><span>GEMS</span><strong>◆ {stats.ninja}/3</strong></span>
+            <div className="hud-name"><small>PLAYER 02</small><strong>THE NINJA</strong></div>
+            <img className="hud-avatar" src="/sprites/ninja-portrait.png" alt="" />
           </div>
         </div>
         <div className="canvas-wrap">
@@ -2233,34 +2212,12 @@ export default function App() {
             />
           )}
           {failureRole && (
-            <div
-              className="failure-overlay"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="failure-title"
-            >
-              <section className="failure-panel">
-                <div className="failure-illustration" aria-hidden="true">
-                  <img src={`/sprites/${failureRole}-portrait.png`} alt="" />
-                  <div className="failure-quicksand">
-                    <span />
-                    <span />
-                  </div>
-                </div>
-                <small>
-                  Oh no! The {failureRole} sank in the {failureHazard}.
-                </small>
-                <strong id="failure-title">Mission 1 Failed</strong>
-                <div className="failure-actions">
-                  <button className="retry-mission" onClick={() => { reset(); sound.start() }}>
-                    RETRY MISSION
-                  </button>
-                  <button className="return-home" onClick={returnToHome}>
-                    RETURN TO HOME
-                  </button>
-                </div>
-              </section>
-            </div>
+            <FailureModal
+              role={failureRole}
+              hazard={failureHazard}
+              onRetry={() => { reset(); sound.start() }}
+              onReturn={returnToHome}
+            />
           )}
           {result && (
             <div
@@ -2358,70 +2315,17 @@ export default function App() {
       </section>
 
       <section className="controls" aria-label="Game controls">
-        <article className="control-card robot-card">
-          <div className="character-icon robot-mini" aria-hidden="true">
-            <img src="/sprites/robot-portrait.png" alt="" />
-          </div>
-          <div className="control-title">
-            <small>PLAYER 1</small>
-            <strong>ROBOT</strong>
-          </div>
-          <div className="control-group">
-            <div className="key-cluster">
-              <div className="key-row key-row-top">
-                <Key>W</Key>
-              </div>
-              <div className="key-row">
-                <Key>A</Key>
-                <Key>S</Key>
-                <Key>D</Key>
-              </div>
-            </div>
-            <span>MOVE / JUMP</span>
-          </div>
-          <div className="control-group">
-            <Key>Q</Key>
-            <span>PLACE BLOCK</span>
-          </div>
-          <p>Build progressively, then use the paired up/down lift buttons.</p>
-        </article>
-
-        <div className="co-op-tip">
-          <span className="link-line" />
-          <div>
-            <small>CO-OP RULE</small>
-            <strong>NO ONE ESCAPES ALONE</strong>
-            <p>
-              Push Lift 01 right to lower it and left to return it; hold floor
-              buttons for the exit lift.
-            </p>
-          </div>
-          <span className="link-line" />
+        <div className="control-card robot-card">
+          <img className="control-avatar" src="/sprites/robot-portrait.png" alt="" />
+          <div className="control-identity"><small>UNIT 7</small><strong>THE BUILDER</strong></div>
+          <div className="control-shortcuts"><span><Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> MOVE</span><span><Key>Q</Key> BUILD</span></div>
         </div>
-
-        <article className="control-card ninja-card">
-          <div className="character-icon ninja-mini" aria-hidden="true">
-            <img src="/sprites/ninja-portrait.png" alt="" />
-          </div>
-          <div className="control-title">
-            <small>PLAYER 2</small>
-            <strong>NINJA</strong>
-          </div>
-          <div className="control-group arrows">
-            <div className="key-cluster">
-              <div className="key-row key-row-top">
-                <Key>↑</Key>
-              </div>
-              <div className="key-row">
-                <Key>←</Key>
-                <Key>↓</Key>
-                <Key>→</Key>
-              </div>
-            </div>
-            <span>MOVE / CLIMB</span>
-          </div>
-          <p>Hold up or down beside a marked vertical wall to climb it.</p>
-        </article>
+        <div className="co-op-tip"><span className="co-op-mark">✳</span><span>NO ONE ESCAPES ALONE</span></div>
+        <div className="control-card ninja-card">
+          <div className="control-shortcuts"><span><Key>←</Key><Key>↑</Key><Key>→</Key> MOVE</span><span><Key>↑</Key><Key>↓</Key> CLIMB</span></div>
+          <div className="control-identity"><small>THE NINJA</small><strong>THE CLIMBER</strong></div>
+          <img className="control-avatar" src="/sprites/ninja-portrait.png" alt="" />
+        </div>
       </section>
     </main>
   )

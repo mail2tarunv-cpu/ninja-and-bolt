@@ -42,3 +42,9 @@ The older fantasy art pipeline (`src/art.ts` and `public/art/`) is retained as a
 At launch, three illustrated panels introduce Halloway Toy Works, Ninja and Unit 7, their complementary abilities, and the shared escape objective. They appear over a paused game canvas, before the mission timer begins. A **STORY** button reopens the introduction, and **RESET** / **PLAY AGAIN** restart gameplay without forcing the introduction again.
 
 The story artwork lives under `public/story/`. The game's soundtrack is an original procedural music-box and toy-factory rhythm built with the browser's Web Audio API (`src/sound.ts`); no licensed tracks or external audio dependency are used. Sound effects cover jumping, building, gems, keys, switches, success, failure, and interface taps. The **SOUND ON / OFF** control mutes or unmutes both soundtrack and SFX, and persists locally.
+
+## Interface refresh
+
+The game uses a viewport-fitted presentation rather than a page with large surrounding chrome. The intro is a three-scene illustrated slideshow, with condensed narrative copy and optional skip controls. The factory failure screen presents the mission status first, then a visual scene and a direct retry action. The gameplay HUD and keyboard controls are kept in compact rails above and below the game world. The factory artwork, scoring, audio, jump physics, and cooperative key-gated win condition remain unchanged.
+
+`tests/interface.test.mjs` checks the story/failure structure and the immersive layout. Full browser playtesting is recommended to review presentation sizing at different desktop resolutions.

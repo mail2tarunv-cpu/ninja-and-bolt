@@ -21,8 +21,8 @@ test('story starts frozen, introduces both abilities, and can be reopened', () =
   assert.ok(app.includes('if (!storyOpen && !game.won'))
   assert.ok(app.includes('pauseMissionTimer(game, now)'))
   assert.ok(app.includes('setStoryOpen(true)'))
-  assert.ok(story.includes('Climbs walls'))
-  assert.ok(story.includes('Builds blocks'))
+  assert.ok(story.includes('CLIMB WALLS'))
+  assert.ok(story.includes('BUILD CRATES'))
   assert.ok(story.includes('BEGIN RESCUE'))
 })
 
