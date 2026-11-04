@@ -1,0 +1,24 @@
+.title-screen {position:fixed;inset:0;z-index:120;isolation:isolate;background:#0a1223;color:#fff4e5;overflow:auto;}
+.title-background {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;}
+.title-screen::after {content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#080f2644,transparent 45%,#080f2666);}
+.title-brand {position:absolute;top:10%;left:8%;}
+.title-brand h1 {font:800 clamp(44px,7vw,100px)/.96 'Barlow Condensed',sans-serif;letter-spacing:.015em;margin:0;text-shadow:0 4px 24px #050b2588;}
+.title-brand h1 span {color:#ffc565;}
+.title-brand p {margin:18px 0 0;font:600 clamp(13px,1.5vw,20px)/1.4 Inter,sans-serif;letter-spacing:.11em;color:#d3dcef;}
+.title-sound {position:absolute;top:30px;right:30px;display:grid;place-items:center;width:48px;height:48px;border:1px solid #ffffff40;background:#101a30b3;color:#fff;border-radius:50%;cursor:pointer;}
+.title-sound .game-icon {width:22px;height:22px;}
+.title-start {position:absolute;right:8%;bottom:16%;width:min(390px,40vw);text-align:center;}
+.title-start button {width:100%;display:flex;align-items:center;justify-content:center;gap:16px;padding:0 22px;min-height:62px;border-radius:32px;border:1px solid #ffe3a0;background:linear-gradient(#ffdc7e,#f5ae38);color:#281d10;box-shadow:0 4px 0 #9a642c,0 12px 36px #0004;font:800 19px Inter,sans-serif;cursor:pointer;}
+.title-start .game-icon {width:21px;height:21px;}
+.title-start button:hover {background:#ffda82;}
+.title-screen button:focus-visible {outline:3px solid #fff5d6;outline-offset:6px;}
+.title-start p {font:500 12px/1.6 Inter,sans-serif;color:#d1d8e9;margin:20px 0 0;text-shadow:0 2px 6px #000;}
+@media(max-width:600px) {
+ .title-background {object-position:37% center;}
+ .title-brand {top:14%;left:7%;right:7%;}
+ .title-brand h1 {font-size:58px;max-width:300px;}
+ .title-brand p {font-size:12px;max-width:260px;}
+ .title-start {left:7%;right:7%;bottom:9%;width:auto;}
+ .title-sound {top:20px;right:20px;}
+}
+@media(max-height:450px) {.title-brand {top:9%;}.title-brand h1 {font-size:46px;}.title-brand p {margin-top:10px;}.title-start {bottom:10%;}.title-start button {min-height:48px;font-size:16px;}}

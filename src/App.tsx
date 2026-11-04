@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { drawDistantFactory, drawAtmosphericHaze } from "./environmentDepth"
 import { drawKeyAsset, loadHallowayKit, drawHallowayBackground, drawHallowayPlatform, drawHallowayMovingLift, drawHallowayClimbWall } from "./hallowayArt"
 import StoryModal from "./StoryModal"
+import TitleScreen from "./TitleScreen"
 import FailureModal from "./FailureModal"
 import OutcomeCard from "./OutcomeCard"
 import { GameSound } from "./sound"
@@ -1904,6 +1905,7 @@ export default function App() {
   const [animatedScore, setAnimatedScore] = useState(0)
   const [resultsReady, setResultsReady] = useState(false)
   const [storyOpen, setStoryOpen] = useState(true)
+  const [titleOpen, setTitleOpen] = useState(true)
   const [hasSeenIntro, setHasSeenIntro] = useState(false)
   const [pauseOpen, setPauseOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -1954,6 +1956,7 @@ export default function App() {
     sound.stop()
     reset()
     setHasSeenIntro(false)
+    setTitleOpen(true)
     setStoryOpen(true)
     setPauseOpen(false)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -2245,7 +2248,8 @@ export default function App() {
             height={WORLD.height}
             aria-label="Co-op obstacle course game"
           />
-          {storyOpen && (
+          {titleOpen && <TitleScreen soundEnabled={soundEnabled} onToggleSound={toggleSound} onStart={() => { sound.play('ui'); setTitleOpen(false) }} />}
+          {storyOpen && !titleOpen && (
             <StoryModal
               mode={hasSeenIntro ? "popup" : "onboarding"}
               onNavigate={() => sound.play('ui')}
@@ -2289,7 +2293,7 @@ export default function App() {
                     <button onClick={() => { reset(); sound.start() }}><GameIcon name="restart" /> Restart</button>
                     <button onClick={() => { setPauseOpen(false); setStoryOpen(true) }}><GameIcon name="story" /> Story</button>
                     <button onClick={toggleSound}><GameIcon name={soundEnabled ? "sound" : "mute"} /> {soundEnabled ? 'Mute sound' : 'Enable sound'}</button>
-                    <button onClick={returnToHome}><GameIcon name="home" /> Back to intro</button>
+                    <button onClick={returnToHome}><GameIcon name="home" /> Back to title</button>
                   </div>}
                 </div>
                 <footer className="panel-footnote"><Key>Esc</Key> Back to game</footer>
