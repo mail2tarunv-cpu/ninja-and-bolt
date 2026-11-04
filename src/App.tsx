@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { drawDistantFactory, drawAtmosphericHaze } from "./environmentDepth"
+import { loadHallowayKit, drawHallowayBackground, drawHallowayPlatform, drawHallowayMovingLift, drawHallowayClimbWall } from "./hallowayArt"
 import StoryModal from "./StoryModal"
 import FailureModal from "./FailureModal"
 import { GameSound } from "./sound"
@@ -275,6 +276,8 @@ function roundedRect(
 }
 
 function drawPlatform(ctx: CanvasRenderingContext2D, rect: Rect) {
+  // Use the approved modular steel kit; procedural art is a loading fallback.
+  if (drawHallowayPlatform(ctx, rect)) return
   // Platform visuals are cosmetic; collision dimensions stay unchanged.
   const horizontal = rect.h <= 28 && rect.w >= 90
   const surface = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h)
@@ -401,6 +404,11 @@ function drawLift(
   ctx.lineTo(x + w - 19, y - 11)
   ctx.stroke()
 
+  // Keep the existing cables, but replace the deck with the approved cyan lift tile.
+  if (drawHallowayMovingLift(ctx, x, y, w, LIFT_HEIGHT)) {
+    ctx.restore()
+    return
+  }
   const plate = ctx.createLinearGradient(0, y, 0, y + LIFT_HEIGHT)
   plate.addColorStop(0, "#424c4f")
   plate.addColorStop(0.22, "#252d30")
@@ -1523,9 +1531,20 @@ function drawWorld(
   now: number,
 ) {
   ctx.clearRect(0, 0, WORLD.width, WORLD.height)
-  drawFactoryBackground(ctx, now)
-  // A cool atmospheric plane between the backdrop and every playable surface.
-  drawAtmosphericHaze(ctx)
+  // Approved far/mid/atmosphere sheets are drawn in game coordinates (1280x720).
+  // The previous factory renderer remains a fallback until the new artwork loads.
+  if (!drawHallowayBackground(ctx)) {
+    drawFactoryBackground(ctx, now)
+    // A cool atmospheric plane between the backdrop and every playable surface.
+    drawAtmosphericHaze(ctx)
+  } else {
+    // Keep a faint furnace pulse and factory identity without reintroducing clutter.
+    ctx.save()
+    ctx.globalAlpha = .22
+    drawFurnaceDepth(ctx, now)
+    drawFactorySign(ctx, now)
+    ctx.restore()
+  }
 
   ctx.strokeStyle = "rgba(100, 113, 120, .46)"
   ctx.lineWidth = 2
@@ -1541,6 +1560,7 @@ function drawWorld(
 
   // Marked vertical routes are reserved for the ninja.
   climbWalls.forEach((wall) => {
+    if (drawHallowayClimbWall(ctx, wall)) return
     ctx.fillStyle = "#263b59"
     ctx.fillRect(wall.x, wall.y, wall.w, wall.h)
     ctx.strokeStyle = "#a985ff"
@@ -1980,6 +2000,7 @@ export default function App() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
+    loadHallowayKit()
     const ctx = canvas.getContext("2d")
     if (!ctx) return
     ;(["robot", "ninja"] as Role[]).forEach((role) => {
