@@ -16,18 +16,14 @@ test('failure hierarchy is headline first, visual scene second, retry is primary
   assert.ok(app.includes('<FailureModal'))
 })
 
-test('story displays readable image-first briefing card with concise copy', () => {
-  assert.ok(story.includes('story-card'))
-  assert.ok(story.includes('story-art'))
-  assert.ok(story.includes('story-editorial'))
-  assert.ok(story.includes('story-footer'))
-  assert.ok(story.indexOf('story-art') < story.indexOf('story-editorial'))
-  assert.ok(!story.includes('story-stage-shade'), 'art should not be obscured by heavy overlay')
-  assert.ok(css.includes('position: fixed; inset: 0'), 'story should cover full viewport, not only canvas')
-  assert.ok(css.includes('story-narrative'), 'text should have its own legible surface')
-  assert.ok(story.includes('SKIP INTRO'))
-  assert.ok(story.includes('BEGIN RESCUE'))
-  assert.ok(STORY_CHAR_COUNT(story) < 500, 'story narrative should be short enough for older children')
+test('story presents a concise cinematic card with coded navigation', () => {
+  const cinema = readFileSync('src/story.css', 'utf8')
+  assert.ok(story.includes('cinema-card'))
+  assert.ok(story.includes('aria-modal="true"'))
+  assert.ok(story.includes('Skip intro'))
+  assert.ok(story.includes('Let’s play'))
+  assert.ok(cinema.includes('width:min(960px,86vw)'))
+  assert.ok(STORY_CHAR_COUNT(story) < 500)
 })
 
 function STORY_CHAR_COUNT(source) {

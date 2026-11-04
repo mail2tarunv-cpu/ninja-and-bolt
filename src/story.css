@@ -1,0 +1,67 @@
+/* Cinematic story card. Artwork is independent from accessible UI copy. */
+.cinema-overlay {
+  position:fixed; inset:0; z-index:100; display:grid; place-items:center;
+  padding:32px; background:rgba(4,10,18,.64); backdrop-filter:blur(5px);
+}
+.cinema-card {
+  position:relative; isolation:isolate; width:min(960px,86vw); aspect-ratio:16/10;
+  max-height:calc(100dvh - 64px); overflow:auto; border-radius:22px;
+  border:1px solid #ffffff26; background:#0b1523; color:#fff5e6;
+  box-shadow:0 30px 100px #0009; display:flex; flex-direction:column; justify-content:flex-end;
+}
+.cinema-picture {position:absolute; inset:0; z-index:-2; overflow:hidden; border-radius:inherit;}
+.cinema-picture img {width:100%; height:100%; object-fit:cover; object-position:center 38%; animation:cinema-in .45s ease-out;}
+.cinema-card::after {content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#07101c55,transparent 24%,#09132110 42%,#091321e8 73%,#091321 100%);}
+.cinema-header {position:absolute;top:22px;left:28px;right:22px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.cinema-header>span {font:800 11px/1.3 Inter,sans-serif;letter-spacing:.15em;text-shadow:0 2px 8px #000;}
+.cinema-card button {cursor:pointer;font:700 14px/1 Inter,sans-serif;transition:background .15s,transform .15s;}
+.cinema-card button:focus-visible {outline:3px solid #fff3c4;outline-offset:4px;}
+.cinema-skip {display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;color:#eff3fa;background:#0a1529bd;border:1px solid #ffffff26;border-radius:10px;}
+.cinema-skip .game-icon {width:16px;height:16px;}
+.cinema-skip:hover,.cinema-back:hover {background:#26364e;}
+.cinema-caption {padding:28px 36px; margin-top:230px;}
+.cinema-copy {animation:cinema-in .3s ease-out;}
+.cinema-kicker {display:block;color:#ffc76b;font:800 11px/1.4 Inter,sans-serif;letter-spacing:.14em;margin-bottom:10px;}
+.cinema-copy h2 {font:800 clamp(24px,3vw,34px)/1.15 Inter,sans-serif;letter-spacing:-.035em;margin:0 0 10px;outline:none;text-wrap:balance;}
+.cinema-copy p {font:500 16px/1.6 Inter,sans-serif;color:#d2dce9;max-width:650px;margin:0;text-wrap:pretty;}
+.cinema-abilities {display:flex;gap:24px;margin-top:14px;font:600 12px/1.4 Inter,sans-serif;color:#e0e8f2;}
+.cinema-abilities span {display:flex;align-items:center;gap:8px;}
+.cinema-abilities kbd {display:grid;place-items:center;min-width:28px;height:28px;border:1px solid #ffffff40;border-bottom-width:3px;border-radius:6px;font:800 14px Inter,sans-serif;background:#213147;}
+.cinema-footer {display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:24px;}
+.cinema-progress {display:flex;align-items:center;gap:7px;}
+.cinema-progress>span {width:7px;height:7px;border-radius:8px;background:#4a576b;}
+.cinema-progress>span.current {width:24px;background:#ffc45d;}
+.cinema-progress>span.visited {background:#b38b4b;}
+.cinema-progress small {margin-left:8px;font:600 11px Inter,sans-serif;color:#aebcd0;}
+.cinema-actions {display:flex;align-items:center;gap:12px;}
+.cinema-next {display:flex;align-items:center;gap:28px;min-height:48px;padding:0 22px;border:1px solid #ffdb90;border-radius:11px;background:#ffc45d;color:#271e10;box-shadow:0 3px 0 #96601b;}
+.cinema-next:hover {background:#ffd68c;transform:translateY(-1px);}
+.cinema-next span {font-size:23px;}
+.cinema-back {min-height:44px;padding:0 13px;color:#d2dce9;border:0;border-radius:9px;background:transparent;}
+@keyframes cinema-in {from {opacity:.45;} to {opacity:1;}}
+@media(max-width:600px) {
+ .cinema-overlay {padding:18px;}
+ .cinema-card {width:100%;aspect-ratio:auto;max-height:calc(100dvh - 36px);border-radius:18px;}
+ .cinema-picture {bottom:auto;height:280px;}
+ .cinema-picture img {object-fit:cover;}
+ .cinema-card::after {background:linear-gradient(180deg,transparent 160px,#0b1523 280px);}
+ .cinema-header {top:14px;left:18px;right:14px;}
+ .cinema-header>span {font-size:9px;}
+ .cinema-skip {font-size:12px!important;padding:0 10px;}
+ .cinema-caption {margin-top:220px;padding:24px;}
+ .cinema-copy p {font-size:14px;}
+ .cinema-abilities {gap:12px;flex-wrap:wrap;}
+ .cinema-footer {gap:8px;}
+ .cinema-next {padding:0 16px;gap:14px;}
+ .cinema-actions {gap:3px;}
+ .cinema-progress small {display:none;}
+}
+@media(max-height:540px) and (min-width:601px) {
+ .cinema-card {width:min(800px,90vw);aspect-ratio:auto;min-height:calc(100dvh - 48px);max-height:calc(100dvh - 32px);}
+ .cinema-overlay {padding:16px;}
+ .cinema-caption {margin-top:120px;padding:20px 28px;}
+ .cinema-copy h2 {font-size:24px;}
+ .cinema-copy p {font-size:14px;}
+ .cinema-footer {margin-top:14px;}
+}
+@media(prefers-reduced-motion:reduce) {.cinema-picture img,.cinema-copy {animation:none;} .cinema-card button {transition:none;}}
