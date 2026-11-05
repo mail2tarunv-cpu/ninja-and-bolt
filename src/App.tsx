@@ -2293,7 +2293,7 @@ export default function App() {
                     <button onClick={() => { reset(); sound.start() }}><GameIcon name="restart" /> Restart</button>
                     <button onClick={() => { setPauseOpen(false); setStoryOpen(true) }}><GameIcon name="story" /> Story</button>
                     <button onClick={toggleSound}><GameIcon name={soundEnabled ? "sound" : "mute"} /> {soundEnabled ? 'Mute sound' : 'Enable sound'}</button>
-                    <button onClick={returnToHome}><GameIcon name="home" /> Back to title</button>
+                    <button onClick={returnToHome}><GameIcon name="home" /> Back to Home</button>
                   </div>}
                 </div>
                 <footer className="panel-footnote"><Key>Esc</Key> Back to game</footer>
