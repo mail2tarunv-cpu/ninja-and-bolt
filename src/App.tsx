@@ -108,6 +108,7 @@ type Game = {
   liftY: number
   exitLiftY: number
   won: boolean
+  firstPitCrossed: boolean
   started: boolean
   lastTime: number
   elapsedMs: number
@@ -198,6 +199,7 @@ const resetGame = (): Game => ({
   liftY: 478,
   exitLiftY: 130,
   won: false,
+  firstPitCrossed: false,
   started: false,
   lastTime: performance.now(),
   elapsedMs: 0,
@@ -1542,11 +1544,105 @@ function drawFactoryBackground(ctx: CanvasRenderingContext2D, now: number) {
   ctx.restore()
 }
 
+function getBuildCandidate(game: Game): Rect | undefined {
+  if (game.blocks.length >= MAX_BLOCKS) return
+  const robot = game.robot
+  const feet = robot.y + robot.h
+  const zone = BUILD_ZONES.find(
+    (buildZone) =>
+      Math.abs(feet - buildZone.floorY) < 90 &&
+      robot.x + robot.w > buildZone.x - 120 &&
+      robot.x < buildZone.x + buildZone.w + 120,
+  )
+  if (zone) {
+    const rowBlocks = game.blocks.filter(
+      (block) => Math.abs(block.y - zone.y) < 2,
+    )
+    const frontierBlock = rowBlocks.length
+      ? robot.facing > 0
+        ? rowBlocks.reduce((frontier, block) =>
+            block.x > frontier.x ? block : frontier,
+          )
+        : rowBlocks.reduce((frontier, block) =>
+            block.x < frontier.x ? block : frontier,
+          )
+      : null
+    const standingOnFrontier =
+      frontierBlock !== null &&
+      Math.abs(feet - frontierBlock.y) < 4 &&
+      robot.x + robot.w > frontierBlock.x &&
+      robot.x < frontierBlock.x + frontierBlock.w
+    const atPlatformEdge =
+      rowBlocks.length === 0 &&
+      Math.abs(feet - zone.floorY) < 4 &&
+      (robot.facing > 0
+        ? robot.x + robot.w >= zone.x - 70 && robot.x < zone.x
+        : robot.x <= zone.x + zone.w + 70 &&
+          robot.x + robot.w > zone.x + zone.w)
+    const x =
+      robot.facing > 0
+        ? rowBlocks.length
+          ? Math.max(...rowBlocks.map((block) => block.x + block.w))
+          : zone.x
+        : rowBlocks.length
+          ? Math.min(...rowBlocks.map((block) => block.x)) - 64
+          : zone.x + zone.w - 64
+    const candidate = { x, y: zone.y, w: 64, h: 28 }
+    const touchesCrossing =
+      candidate.x < zone.x + zone.w && candidate.x + candidate.w > zone.x
+    const blocked = currentColliders(game).some((solid) =>
+      overlaps(candidate, solid),
+    )
+    if ((atPlatformEdge || standingOnFrontier) && touchesCrossing && !blocked) return candidate
+  }
+}
+
+function drawBuildCue(ctx: CanvasRenderingContext2D, game: Game) {
+  const pit = BUILD_ZONES[0]
+  const robot = game.robot
+  if (game.firstPitCrossed || game.failedRole || game.won) return
+  const candidate = getBuildCandidate(game)
+  const preview = candidate?.y === pit.y ? candidate : undefined
+  const hasBlock = game.blocks.some(block => block.y === pit.y)
+  const nearEdge = robot.x < pit.x && robot.x + robot.w >= pit.x - 70 &&
+    Math.abs(robot.y + robot.h - pit.floorY) < 4
+  if (!preview && !(hasBlock && nearEdge)) return
+
+  ctx.save()
+  if (preview) {
+    roundedRect(ctx, preview.x, preview.y, preview.w, preview.h, 5)
+    ctx.fillStyle = "#ffc84c55"
+    ctx.fill()
+    ctx.strokeStyle = "#ffe59b"
+    ctx.lineWidth = 2
+    ctx.setLineDash([6, 4])
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+  const label = !hasBlock ? "[Q] Build a path"
+    : preview ? "[Q] Build the next block" : "Step onto the block, then press [Q] again"
+  ctx.font = "700 19px Inter, sans-serif"
+  const width = ctx.measureText(label).width + 28
+  const x = Math.max(12, robot.x + robot.w / 2 - width / 2)
+  const y = robot.y - 50
+  roundedRect(ctx, x, y, width, 36, 8)
+  ctx.fillStyle = "#0a1728f5"
+  ctx.fill()
+  ctx.strokeStyle = "#ffc565"
+  ctx.lineWidth = 1
+  ctx.stroke()
+  ctx.fillStyle = "#fff3d9"
+  ctx.textBaseline = "middle"
+  ctx.fillText(label, x + 14, y + 18)
+  ctx.restore()
+}
+
 function drawWorld(
   ctx: CanvasRenderingContext2D,
   game: Game,
   atlases: SpriteAtlases,
   now: number,
+  showBuildCue: boolean,
 ) {
   ctx.clearRect(0, 0, WORLD.width, WORLD.height)
   // Approved far/mid/atmosphere sheets are drawn in game coordinates (1280x720).
@@ -1654,6 +1750,7 @@ function drawWorld(
 
   drawCharacterSprite(ctx, game.robot, atlases, now)
   drawCharacterSprite(ctx, game.ninja, atlases, now)
+  if (showBuildCue) drawBuildCue(ctx, game)
 
   // The cinematic onboarding is the sole start presentation; no second dark overlay.
 }
@@ -1767,64 +1864,19 @@ function updateGame(game: Game, dt: number) {
   movePlayer(game.ninja, game, dt, ninjaInput)
   if (game.failedRole) return
 
-  if (keys.has("KeyQ") && !game.placeLock && game.blocks.length < MAX_BLOCKS) {
-    const robot = game.robot
-    const feet = robot.y + robot.h
-    const zone = BUILD_ZONES.find(
-      (buildZone) =>
-        Math.abs(feet - buildZone.floorY) < 90 &&
-        robot.x + robot.w > buildZone.x - 120 &&
-        robot.x < buildZone.x + buildZone.w + 120,
-    )
-    if (zone) {
-      const rowBlocks = game.blocks.filter(
-        (block) => Math.abs(block.y - zone.y) < 2,
-      )
-      const frontierBlock = rowBlocks.length
-        ? robot.facing > 0
-          ? rowBlocks.reduce((frontier, block) =>
-              block.x > frontier.x ? block : frontier,
-            )
-          : rowBlocks.reduce((frontier, block) =>
-              block.x < frontier.x ? block : frontier,
-            )
-        : null
-      const standingOnFrontier =
-        frontierBlock !== null &&
-        Math.abs(feet - frontierBlock.y) < 4 &&
-        robot.x + robot.w > frontierBlock.x &&
-        robot.x < frontierBlock.x + frontierBlock.w
-      const atPlatformEdge =
-        rowBlocks.length === 0 &&
-        Math.abs(feet - zone.floorY) < 4 &&
-        (robot.facing > 0
-          ? robot.x + robot.w >= zone.x - 70 && robot.x < zone.x
-          : robot.x <= zone.x + zone.w + 70 &&
-            robot.x + robot.w > zone.x + zone.w)
-      const x =
-        robot.facing > 0
-          ? rowBlocks.length
-            ? Math.max(...rowBlocks.map((block) => block.x + block.w))
-            : zone.x
-          : rowBlocks.length
-            ? Math.min(...rowBlocks.map((block) => block.x)) - 64
-            : zone.x + zone.w - 64
-      const candidate = { x, y: zone.y, w: 64, h: 28 }
-      const touchesCrossing =
-        candidate.x < zone.x + zone.w && candidate.x + candidate.w > zone.x
-      const blocked = currentColliders(game).some((solid) =>
-        overlaps(candidate, solid),
-      )
-      if (
-        (atPlatformEdge || standingOnFrontier) &&
-        touchesCrossing &&
-        !blocked
-      ) {
-        game.blocks.push(candidate)
-        const buildStartedAt = performance.now()
-        robot.buildAnimationStartedAt = buildStartedAt
-        robot.buildAnimationUntil = buildStartedAt + 500
-      }
+  const firstPit = BUILD_ZONES[0]
+  if (game.robot.x >= firstPit.x + firstPit.w &&
+      Math.abs(game.robot.y + game.robot.h - firstPit.floorY) < 4) {
+    game.firstPitCrossed = true
+  }
+
+  if (keys.has("KeyQ") && !game.placeLock) {
+    const candidate = getBuildCandidate(game)
+    if (candidate) {
+      game.blocks.push(candidate)
+      const buildStartedAt = performance.now()
+      game.robot.buildAnimationStartedAt = buildStartedAt
+      game.robot.buildAnimationUntil = buildStartedAt + 500
     }
     game.placeLock = true
   }
@@ -1929,7 +1981,8 @@ export default function App() {
     ninjaHasKey: false,
   })
   const reset = useCallback(() => {
-    gameRef.current = resetGame()
+    const { firstPitCrossed } = gameRef.current
+    gameRef.current = { ...resetGame(), firstPitCrossed }
     soundsPreviousRef.current = {
       gems: 0, blocks: 0, robotKey: false, ninjaKey: false,
       lever: false, robotVy: 0, ninjaVy: 0,
@@ -2167,7 +2220,7 @@ export default function App() {
         })
       }
 
-      drawWorld(ctx, game, spritesRef.current, time)
+      drawWorld(ctx, game, spritesRef.current, time, !storyOpen && !pauseOpen)
       statAccumulator += dt
       if (statAccumulator > 0.12) {
         statAccumulator = 0
