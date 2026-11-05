@@ -119,7 +119,7 @@ type Game = {
   failedHazard: FailureHazard | null
   failureHandled: boolean
   placeLock: boolean
-  interactLock: boolean
+  leverTravel: number
   robotExit: boolean
   ninjaExit: boolean
 }
@@ -209,7 +209,7 @@ const resetGame = (): Game => ({
   failedHazard: null,
   failureHandled: false,
   placeLock: false,
-  interactLock: false,
+  leverTravel: 0,
   robotExit: false,
   ninjaExit: false,
 })
@@ -673,7 +673,10 @@ function drawExitDoor(
   ctx.restore()
 }
 
-function drawLever(ctx: CanvasRenderingContext2D, on: boolean) {
+function drawLever(ctx: CanvasRenderingContext2D, on: boolean, travel: number) {
+  const angle = (0.5 - travel) * 0.9
+  const handleX = 19 + Math.sin(angle) * 28
+  const handleY = -Math.cos(angle) * 28
   const x = 954
   const y = 460
   const steel = ctx.createLinearGradient(x,y,x,y+18)
@@ -690,11 +693,11 @@ function drawLever(ctx: CanvasRenderingContext2D, on: boolean) {
   ctx.lineCap = "round"
   ctx.beginPath()
   ctx.moveTo(x + 19, y)
-  ctx.lineTo(x + (on ? 31 : 7), y - 25)
+  ctx.lineTo(x + handleX, y + handleY)
   ctx.stroke()
   ctx.fillStyle = ctx.strokeStyle
   ctx.beginPath()
-  ctx.arc(x + (on ? 31 : 7), y - 25, 6, 0, Math.PI * 2)
+  ctx.arc(x + handleX, y + handleY, 6, 0, Math.PI * 2)
   ctx.fill()
 }
 
@@ -1604,7 +1607,7 @@ function drawWorld(
     drawFallingIvyBits(ctx, 830, game.exitLiftY, 97, now, 0.61)
   }
 
-  drawLever(ctx, game.leverOn)
+  drawLever(ctx, game.leverOn, game.leverTravel)
   drawFloorButton(ctx, 520, 288, game.exitLiftButton)
   drawFloorButton(ctx, 1010, 118, game.topLiftButton)
 
@@ -1757,6 +1760,8 @@ function updateGame(game: Game, dt: number) {
   )
     game.started = true
 
+  const robotPreviousX = game.robot.x
+  const ninjaPreviousX = game.ninja.x
   movePlayer(game.robot, game, dt, robotInput)
   if (game.failedRole) return
   movePlayer(game.ninja, game, dt, ninjaInput)
@@ -1825,30 +1830,24 @@ function updateGame(game: Game, dt: number) {
   }
   if (!keys.has("KeyQ")) game.placeLock = false
 
-  const getSwitchPush = (
-    player: Player,
-    input: { left: boolean; right: boolean },
-  ) => {
-    const toggleX = 954 + (game.leverOn ? 31 : 7)
-    const touchingToggle = player.y < 460 && player.y + player.h > 425
-    const pushingFromLeft =
-      input.right && player.x < toggleX && player.x + player.w > toggleX - 10
-    const pushingFromRight =
-      input.left && player.x + player.w > toggleX && player.x < toggleX + 10
-    if (!touchingToggle) return null
-    if (pushingFromLeft) return "right"
-    if (pushingFromRight) return "left"
-    return null
+  // Sweep each player's leading edge against the lever's handle so a
+  // single step can make contact even if it passes the handle in one frame.
+  const handleX = 954 + (game.leverOn ? 7 : 31)
+  const pushesLever = (player: Player, previousX: number) => {
+    if (player.y >= 460 || player.y + player.h <= 429) return false
+    if (!game.leverOn) {
+      return player.x < previousX && previousX + player.w > handleX &&
+        previousX >= handleX - 6 && player.x <= handleX + 6
+    }
+    return player.x > previousX && previousX < handleX &&
+      previousX + player.w <= handleX + 6 && player.x + player.w >= handleX - 6
   }
-  const switchPush =
-    getSwitchPush(game.robot, robotInput) ??
-    getSwitchPush(game.ninja, ninjaInput)
-  if (switchPush && !game.interactLock) {
-    if (switchPush === "right") game.leverOn = true
-    if (switchPush === "left") game.leverOn = false
-    game.interactLock = true
+  if (pushesLever(game.ninja, ninjaPreviousX) || pushesLever(game.robot, robotPreviousX)) {
+    game.leverOn = !game.leverOn
   }
-  if (!switchPush) game.interactLock = false
+  const leverTarget = game.leverOn ? 1 : 0
+  const leverStep = Math.min(Math.abs(leverTarget - game.leverTravel), dt * 8)
+  game.leverTravel += Math.sign(leverTarget - game.leverTravel) * leverStep
 
   const isStandingOnButton = (player: Player, button: Rect) =>
     player.x + player.w > button.x &&
