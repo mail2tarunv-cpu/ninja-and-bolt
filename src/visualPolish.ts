@@ -22,11 +22,11 @@ export function drawSteelButton(ctx: CanvasRenderingContext2D,x:number,y:number,
   ctx.save()
   const top=y+(pressed?6:0), h=pressed?6:12
   const steel=ctx.createLinearGradient(x,top,x,top+h)
-  steel.addColorStop(0,'#9ba8ad');steel.addColorStop(.3,'#5c7180');steel.addColorStop(1,'#263947')
+  steel.addColorStop(0,'#79d8f3');steel.addColorStop(.3,'#247ca9');steel.addColorStop(1,'#143954')
   ctx.fillStyle=steel;ctx.strokeStyle='#111d29';ctx.lineWidth=1
   ctx.beginPath();ctx.roundRect(x,top,58,h,3);ctx.fill();ctx.stroke()
   ctx.fillStyle='#102736';ctx.fillRect(x+20,top+3,20,4)
-  ctx.fillStyle=pressed?'#a1fff0':'#45b6c0';ctx.fillRect(x+22,top+4,16,2)
+  ctx.fillStyle=pressed?'#a1fff0':'#41e6ff';ctx.fillRect(x+22,top+4,16,2)
   ctx.fillStyle='#c4cdd0';ctx.fillRect(x+5,top+4,2,2);ctx.fillRect(x+51,top+4,2,2)
   ctx.restore()
 }

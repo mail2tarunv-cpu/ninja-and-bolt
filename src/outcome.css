@@ -46,3 +46,12 @@
 .outcome-character-art {position:absolute;inset:0;z-index:-2;background-image:url('/story/character-failures.png');background-repeat:no-repeat;background-size:auto 207.5%;background-position:center top;}
 .outcome-character-art.is-robot {background-position:center bottom;}
 .outcome-failure:has(.outcome-character-art)::after {background:linear-gradient(#07101ba8,transparent 48%,#09111ed9 76%,#09111e 100%);}
+
+.outcome-character-art.is-robot {transform:translateY(5%);}
+.outcome-failure .outcome-heading {text-shadow:0 2px 8px #050a14,0 0 16px #050a14;}
+.outcome-score {font-size:15px;}
+.outcome-score b {color:#ffd07c;}
+.outcome-actions {display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;}
+.outcome-home {min-height:48px;padding:0 20px;border:1px solid #62748b;border-radius:28px;background:#162437;color:#f0f4fa;font:700 15px Inter,sans-serif;cursor:pointer;}
+.outcome-home:hover {background:#263950;}
+.outcome-home:focus-visible {outline:3px solid #fff1bf;outline-offset:5px;}

@@ -488,3 +488,7 @@ body { overscroll-behavior:none; }
  .help-objective {margin:12px 0;}
 }
 @media(max-width:440px) {.hero-guides {grid-template-columns:1fr;}.hero-guide header img {width:34px;height:38px;}.panel-emblem {display:none;}}
+
+.app-shell .mission-timer {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.app-shell .mission-timer small {display:block;text-transform:uppercase;line-height:1;}
+.app-shell .key-asset {filter:none;opacity:1;}

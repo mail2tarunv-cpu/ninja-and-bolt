@@ -2233,7 +2233,7 @@ export default function App() {
             <span className="block-count"><GameIcon name="blocks" /> {stats.blocks} blocks</span>
             <span className={`key-progress ${stats.robotHasKey ? "found" : ""}`}><img className="key-asset" src="/ui/key-bolt.svg" alt="" /> {stats.robotHasKey ? "Key found" : "Find key"}</span>
           </div>
-          <div className="objective mission-timer"><small><GameIcon name="clock" /></small><strong>{formatTime(stats.elapsedMs)}</strong></div>
+          <div className="objective mission-timer"><small>Time</small><strong>{formatTime(stats.elapsedMs)}</strong></div>
           <div className="player-status ninja-status">
             <span className={`key-progress ${stats.ninjaHasKey ? "found" : ""}`}><img className="key-asset" src="/ui/key-ninja.svg" alt="" /> {stats.ninjaHasKey ? "Key found" : "Find key"}</span>
             <span className="gem-count"><span aria-label={`${stats.ninja} of 3 gems`}>{[0,1,2].map(i => <i key={i} className={i < stats.ninja ? "gem-slot collected" : "gem-slot"}>◆</i>)}</span></span>
@@ -2268,15 +2268,15 @@ export default function App() {
                 <button className="panel-close" aria-label="Back to game" autoFocus onClick={() => setPauseOpen(false)}><GameIcon name="close" /></button>
                 <header className="panel-heading">
                   <span className="panel-emblem"><GameIcon name={helpOpen ? "help" : "pause"} /></span>
-                  <div><span className="pause-kicker">BETTER TOGETHER</span><h2 id="pause-title">{helpOpen ? "Two heroes. One escape." : "Take a breather."}</h2></div>
+                  <div><span className="pause-kicker">BETTER TOGETHER</span><h2 id="pause-title">{helpOpen ? "How to Play" : "Take a breather."}</h2></div>
                 </header>
                 {helpOpen ? <>
                   <p className="help-intro">Share a keyboard. Use your different abilities to get home.</p>
                   <div className="hero-guides">
                     <article className="hero-guide bolt-guide">
                       <header><img src="/sprites/robot-portrait.png" alt=""/><div><h3>Bolt</h3><span>The builder</span></div></header>
-                      <dl><div><dt>Move</dt><dd><Key>A</Key><Key>D</Key></dd></div><div><dt>Jump</dt><dd><Key>W</Key></dd></div><div><dt>Build a bridge</dt><dd><Key>Q</Key></dd></div></dl>
-                      <p>Build at a gap’s edge. Step onto your newest block to keep building.</p>
+                      <dl><div><dt>Move</dt><dd><Key>A</Key><Key>D</Key></dd></div><div><dt>Jump</dt><dd><Key>W</Key></dd></div><div><dt>Build a path</dt><dd><Key>Q</Key></dd></div></dl>
+                      <p>Start building at the edge of the factory waste. Step onto your newest block to keep building.</p>
                     </article>
                     <article className="hero-guide ninja-guide">
                       <header><img src="/sprites/ninja-portrait.png" alt=""/><div><h3>Ninja</h3><span>The climber</span></div></header>
@@ -2284,7 +2284,7 @@ export default function App() {
                       <p>Climb the purple-marked wall to reach places Bolt can’t.</p>
                     </article>
                   </div>
-                  <div className="help-objective"><div className="objective-keys"><img src="/ui/key-bolt.svg" alt=""/><img src="/ui/key-ninja.svg" alt=""/></div><p><strong>Find your keys. Escape together.</strong><span>Each hero needs their own key and exit door.</span></p><GameIcon name="exit" /></div>
+                  <div className="help-objective"><div className="objective-keys"><img src="/ui/key-bolt.svg" alt=""/><img src="/ui/key-ninja.svg" alt=""/></div><p><strong>Find your keys. Escape together.</strong><span>Each hero needs their own key to unlock their exit door.</span></p><GameIcon name="exit" /></div>
                 </> : <p className="help-intro">Your adventure will be right here.</p>}
                 <div className="pause-actions">
                   <button className="pause-primary" onClick={() => { sound.play('ui'); setPauseOpen(false) }}><GameIcon name="play" /> {helpOpen ? "Let’s play" : "Resume mission"}</button>
@@ -2301,19 +2301,19 @@ export default function App() {
             </div>
           )}
           {failureRole && (
-            <FailureModal
+            <FailureModal onHome={returnToHome}
               role={failureRole}
               hazard={failureHazard}
               onRetry={() => { reset(); sound.start() }}
             />
           )}
           {result && (
-            <OutcomeCard success description="Bolt and Ninja escaped Halloway Toys together!" onRetry={() => { reset(); sound.start() }}>
+            <OutcomeCard success onHome={returnToHome} description="Bolt and Ninja escaped Halloway Toys together!" onRetry={() => { reset(); sound.start() }}>
               <div className="outcome-stats">
                 <span><GameIcon name="gem" /> {result.collectedGems} / 6 gems</span>
                 <span><GameIcon name="clock" /> {formatTime(result.elapsedMs)}</span>
               </div>
-              <p className="outcome-score">Team score: {animatedScore.toLocaleString()} / 1,000
+              <p className="outcome-score"><b>Team score:</b> {animatedScore.toLocaleString()} / 1,000 points
                 {resultsReady && result.newBest && <strong>New best!</strong>}
               </p>
             </OutcomeCard>
@@ -2324,12 +2324,12 @@ export default function App() {
       <section className="controls" aria-label="Game controls">
         <div className="control-card robot-card">
           <img className="control-avatar" src="/sprites/robot-portrait.png" alt="" />
-          <div className="control-identity"><small>Bolt</small><strong>Builder</strong></div>
+          <div className="control-identity"><small>Bolt</small><strong>– The Builder</strong></div>
           <div className="control-shortcuts"><span><Key>A</Key><Key>D</Key> Move</span><span><Key>W</Key> Jump</span><span><Key>Q</Key> Build</span></div>
         </div>
         <div className="control-card ninja-card">
           <div className="control-shortcuts"><span><Key>←</Key><Key>→</Key> Move</span><span><Key>↑</Key> Jump / climb</span><span><Key>↓</Key> Climb down</span></div>
-          <div className="control-identity"><small>Ninja</small><strong>Climber</strong></div>
+          <div className="control-identity"><small>Ninja</small><strong>– The Climber</strong></div>
           <img className="control-avatar" src="/sprites/ninja-portrait.png" alt="" />
         </div>
       </section>

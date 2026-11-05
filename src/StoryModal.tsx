@@ -12,21 +12,21 @@ const STORY = [
   {
     eyebrow: '01 / THE RESCUE',
     title: 'Someone came back for Bolt.',
-    description: 'Bolt has been waiting in Halloway Toys. Ninja’s here to bring him home.',
+    description: 'Bolt has been waiting to escape the abandoned Halloway Toy factory. Ninja’s here to bring him home.',
     image: '/story/rescue-v2.png',
     alt: 'Ninja arrives through a factory window and reaches toward Bolt on a workbench.',
   },
   {
     eyebrow: '02 / TEAMWORK',
     title: 'Bolt builds. Ninja climbs.',
-    description: 'Build paths across gaps and climb walls. They’ll need each other to escape.',
+    description: 'Bolt builds paths across factory waste and Ninja climbs walls. They’ll need to work together to escape.',
     image: '/story/teamwork-v2.png',
     alt: 'Bolt places blocks across a gap while Ninja climbs a purple-marked factory wall.',
   },
   {
     eyebrow: '03 / THE ESCAPE',
     title: 'Get them both home.',
-    description: 'Collect gems, find both keys, and reach both exits together.',
+    description: 'Collect gems, find both keys, and unlock both exits together.',
     image: '/story/escape-v2.png',
     alt: 'Bolt and Ninja face two locked exits with gold and purple keys nearby.',
   },
@@ -94,7 +94,7 @@ export default function StoryModal({ mode = 'onboarding', onBegin, onNavigate }:
             <p id="story-description">{slide.description}</p>
             {page === 1 && <div className="cinema-abilities" aria-label="Character controls">
               <span><kbd>Q</kbd> Bolt builds blocks</span>
-              <span><kbd>↑</kbd> Ninja climbs walls</span>
+              <span><kbd>↑</kbd><kbd>↓</kbd> Ninja climbs walls</span>
             </div>}
           </div>
           <footer className="cinema-footer">

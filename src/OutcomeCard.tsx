@@ -2,8 +2,8 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import GameIcon from './GameIcon'
 import './outcome.css'
 
-export default function OutcomeCard({ success = false, failureRole, description, children, onRetry }: {
-  success?: boolean; failureRole?: 'robot' | 'ninja'; description: string; children: ReactNode; onRetry: () => void
+export default function OutcomeCard({ success = false, failureRole, description, children, onRetry, onHome }: {
+  success?: boolean; failureRole?: 'robot' | 'ninja'; description: string; children: ReactNode; onRetry: () => void; onHome: () => void
 }) {
   const button = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -12,7 +12,12 @@ export default function OutcomeCard({ success = false, failureRole, description,
     return () => previous?.focus()
   }, [])
   return <div className="outcome-overlay" role="dialog" aria-modal="true" aria-labelledby="outcome-title" aria-describedby="outcome-description"
-    onKeyDown={event => { if (event.key === 'Tab') { event.preventDefault(); button.current?.focus() } }}>
+    onKeyDown={event => { if (event.key === 'Tab') {
+      const actions = Array.from(event.currentTarget.querySelectorAll('button'))
+      const index = actions.indexOf(document.activeElement as HTMLButtonElement)
+      event.preventDefault()
+      actions[(index + (event.shiftKey ? -1 : 1) + actions.length) % actions.length]?.focus()
+    } }}>
     <section className={`outcome-card ${success ? 'outcome-success' : 'outcome-failure'}`}>
       {failureRole ? <div className={`outcome-character-art is-${failureRole}`} role="img" aria-label={`${failureRole === 'robot' ? 'Bolt' : 'Ninja'} sinking into a toy pit`} /> : <img className="outcome-art" src={`/story/${success ? 'success' : 'failure'}-background.png`} alt="" />}
       <header className="outcome-heading">
@@ -24,7 +29,8 @@ export default function OutcomeCard({ success = false, failureRole, description,
       </header>
       <footer className="outcome-footer">
         {children}
-        <button className="outcome-retry" ref={button} onClick={onRetry}>{success ? 'Play again' : 'Try again'} <GameIcon name="restart" /></button>
+        <div className="outcome-actions"><button className="outcome-home" onClick={onHome}>Back to Home</button>
+        <button className="outcome-retry" ref={button} onClick={onRetry}>{success ? 'Play again' : 'Try again'} <GameIcon name="restart" /></button></div>
       </footer>
     </section>
   </div>
